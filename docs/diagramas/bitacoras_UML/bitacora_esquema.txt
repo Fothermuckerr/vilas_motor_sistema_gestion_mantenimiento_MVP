@@ -1,0 +1,14 @@
+Antes de codificar he asegurado el siguiente stack de documentación para basar las decisiones técnicas de implementación:
+
+1.-Esquema SQL (schema.sql): fuente de verdad para modelos, relaciones y restricciones.
+
+2.-Boceto de clases (classes.py): guía de métodos y lógica, ya depurado según bitácoras.
+
+3.-Bitácoras de cambios: de esquema, clases, actividades, secuencia, comunicación, componentes, casos de uso. Documentan decisiones y cambios.
+
+4.-Diagramas auditados: UML, componentes, despliegue, casos de uso, secuencia, comunicación, actividades. Alineados al MVP y documentación canon
+
+5.-Bajada de requerimientos y planillas Excel: contexto funcional y datos reales.
+
+
+Nuevo alcance claro del MVP: sin stock, sin facturación, sin notificaciones, sin telemetría. Solo planificación de mantenciones, horómetros, OT, insumos, auditoría.

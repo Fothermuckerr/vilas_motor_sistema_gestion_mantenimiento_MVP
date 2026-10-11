@@ -1,0 +1,25 @@
+Bitacora de cambios al diagrama de casos de uso para alinearlo al MVP y al esquema SQL:
+
+1.- Eliminar actor "Ventas y Cobranza" -removido. (No existe tabla ni requerimiento en el esquema ni en la Bajada de requerimientos.)
+
+2.- Eliminar actor "Soporte TI" -removido. (No está en el esquema ni en el MVP.)
+
+3.- Eliminar actor "Cliente (operador)" -removido. (En el MVP solo existe el Planificador; el Cliente no accede al sistema, solo reporta horómetro vía solicitud.)
+
+4.- Eliminar actor "Técnico de Mantenimiento" -removido. (Corrección: el técnico no interactúa con el sistema. Ejecuta la OT en terreno y el Planificador transcribe el resultado a mano, igual que el resto de la información que llega por WhatsApp, correo o voz. El esquema eliminó la columna id_tecnico de orden_trabajo —ver bitácora de esquema, punto 9: la trazabilidad la entrega numero_ot, no la persona. Los casos de uso que el técnico tenía asignados pasan al Planificador.)
+
+5.- Mantener actor "Planificación" -sin cambios. (Es el actor principal del MVP.)
+
+6.- Marcar actores "Softland" y "Telemetria JCB" como futuros -cambiado. (No están en el MVP; telemetria_equipo existe solo para escalabilidad.)
+
+7.- Eliminar CU10 "Gestionar insumos" -removido. (El sistema no gestiona inventario, solo catálogo de insumos; la gestión se reduce a consulta.)
+
+8.- Eliminar CU11 "Exportar reporte de horómetros" -removido. (No está en el MVP; puede ser futuro.)
+
+9.- Eliminar CU12 "Consultar auditoria" -removido. (La auditoría se registra automáticamente, pero no se consulta en el MVP.)
+
+10.- Eliminar CU14 "Importar telemetría y datos externos" -removido. (Fuera del alcance del MVP; marcar como futuro.)
+
+11.- Mantener CU1, CU2, CU3, CU4, CU5, CU6, CU7, CU8, CU9, CU13 -sin cambios. (Alineados con el esquema y el MVP.)
+
+12.- Aclarar que CU3 y CU4 incluyen CU6 y CU13 -sin cambios. (Correcto: validar y calcular próximo servicio son parte del registro de horómetro.)

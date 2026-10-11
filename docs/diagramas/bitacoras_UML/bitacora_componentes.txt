@@ -1,0 +1,21 @@
+Daniel, cambios al diagrama de componentes para alinearlo al MVP y al esquema SQL:
+
+1.- "Insumos e Inventario" renombrado a "Insumos" -removido inventario. (El esquema no gestiona stock, según Bajada de requerimientos, out of scope.)
+
+2.- "Reportes de Facturación" -removido. (No existe tabla ni requerimiento en el esquema ni en la Bajada de requerimientos.)
+
+3.- "Integraciones" con Softland y Google Drive -removido. (No están en el esquema ni en el MVP; se dejan como futuras.)
+
+4.- "Notificaciones" -marcado como no usado en MVP. (La tabla existe pero no se usa; las alertas se calculan en tiempo real, según bitacora.txt punto 7.)
+
+5.- "Telemetría JCB" renombrado a "TelemetriaEquipo" -cambiado. (Ya se renombró en el esquema para ser genérico y escalable a otras marcas.)
+
+6.- "Alertas" -aclarado que no es un componente de datos, sino un servicio. (Se calcula con CalculadoraProximoServicio, no es tabla.)
+
+7.- "Servidor de correo" -marcado como externo no implementado. (No está en el MVP.)
+
+8.- "Panel de Flota y Reportes" y "Auditoría" -sin cambios, alineados con el esquema.
+
+9.- "Validación de Datos" -aclarado que es un servicio, no un componente de datos. (ValidadorDatos, lógica pura.)
+
+Para el MVP, simplificar el diagrama quitando facturación, inventario, Softland, Google Drive y notificaciones (o marcarlos como futuros). Mantener: Usuarios/Roles, Equipos/Horómetros, Planes de Mantención, Órdenes de Trabajo/Historial, Insumos, Auditoría, Validación, Cálculo de Próximo Servicio, y Base de Datos MySQL + Archivos Adjuntos.

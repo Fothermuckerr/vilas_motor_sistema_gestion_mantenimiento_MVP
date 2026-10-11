@@ -1,0 +1,39 @@
+#Pantallas del MVP Vilas Motor
+
+Orden de construcción: cuentas → flota → insumos → horometros → arriendos → mantencion (OT) → dashboard.
+El dashboard va al final: necesita datos reales del resto para mostrar alertas con sentido.
+
+#I.-Login / Home
+-Login: email + contraseña (único actor: planificador).
+-Home: menú principal con acceso a las secciones.
+
+#II.-Dashboard central (alerta de mantención)
+-Muestra: lista de equipos con el estado de su próximo servicio (CalculadoraProximoServicio).
+-Por fila: equipo, horas actuales, próximo servicio, horas restantes y alerta si está en umbral o vencido.
+-Acción: click → detalle del equipo; botón "crear OT".
+
+#III.-Catálogos (CRUD)
+-Clientes: rut, razón social, contacto, activo.
+-Equipos: código, tipo, patente, marca, modelo, estado, horómetro actual.
+-Tipos de equipo: nombre + unidad (HORAS/KM).
+-Insumos: código, nombre, unidad de medida.
+-Planes/Servicios: plan → servicios con intervalo + insumos de la "receta".
+
+#IV.-Horómetros
+-Solicitar lectura: elegir equipo + cliente → crea SolicitudHorometro.
+-Listado de solicitudes: filtro por estado (pendiente/cumplida/vencida).
+-Registrar lectura: valor + fuente + observación → valida (no retrocede) y actualiza el horómetro del equipo.
+
+#V.-Arriendos
+-Listado: equipo, cliente, fechas, estado de vigencia (abierto/vencido).
+-Crear: asignar equipo + cliente + fecha inicio.
+-Cerrar: fijar fecha de término.
+
+#VI.-Órdenes de trabajo (OT)
+-Listado: número OT, equipo, tipo (preventiva/correctiva), estado, fechas.
+-Crear/programar: elegir equipo, tipo, servicio plan, fecha programada.
+-Detalle de OT: registrar insumos usados (cantidad + nota) y cerrar (horómetro de cierre → historial).
+
+#VII.-Detalle de equipo (historial)
+-Ficha del equipo + pestañas con sus lecturas, OT y arriendos.
+-Acción: botones "solicitar horómetro", "crear OT", "crear arriendo".

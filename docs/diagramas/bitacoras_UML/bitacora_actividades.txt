@@ -1,0 +1,9 @@
+Cambios para reflejar el esquema SQL definido en el diagrama de secuencia.
+
+1.- Cambiar carril "Técnico de Mantenimiento" a "Planificador" -cambiado. (Según la Bajada de requerimientos, el proceso inicia con la solicitud del horómetro al cliente y la planificación; el técnico aparece al final para ejecutar la mantención.)
+
+2.- Eliminar "stock" de la actividad "Actualizar historial, stock y horómetro" -removido. (El sistema no gestiona inventario)
+
+3.- Eliminar "notificar por correo" en "Generar alerta y notificar por correo" -removido. (Notificaciones no se usan en el MVP; las alertas se calculan en tiempo real y se muestran en el dashboard.)
+
+4.- Agregar actividad "Solicitar horómetro al cliente" -agregado. (La tabla solicitud_horometro existe en el esquema y es parte del flujo según la Bajada de requerimientos.)

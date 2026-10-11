@@ -1,0 +1,12 @@
+#Boceto de aplicaciones django y sus modelos asociados 
+
+*Despues del analisis del esquema, clases, requerimientos y diagramas UML se
+concibe la siguiente arquitectura de aplicaciones django.
+
+cuentas (rol, cliente, usuario)
+flota (TipoEquipo, Equipo)
+insumos (Insumo)
+mantencion (PlanMantencion, ServicioPlan, ServicioPlanInsumo, OrdenTrabajo, OrdenTrabajoInsumo)
+horometros (LecturaHorometro, SolicitudHorometro)
+arriendos (Arriendo)
+auditoria (auditoria, ArchivosAdjuntos)

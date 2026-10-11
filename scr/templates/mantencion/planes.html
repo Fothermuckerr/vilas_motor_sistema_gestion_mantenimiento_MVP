@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block title %}Planes de mantención — Vilas Motor{% endblock %}
+
+{% block content %}
+<h1>Planes de mantención</h1>
+<p class="page-subtitle">Planes y servicios por tipo de equipo.</p>
+
+<p>
+    <a class="btn btn-primary" href="{% url 'mantencion:crear_plan' %}">Crear plan</a>
+    <a class="btn btn-secondary" href="{% url 'mantencion:crear_servicio' %}">Crear servicio</a>
+</p>
+
+<h2>Planes</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Nombre</th>
+            <th>Tipo de equipo</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for plan in planes %}
+        <tr>
+            <td>{{ plan.nombre }}</td>
+            <td>{{ plan.tipo_equipo.nombre }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="2">No hay planes registrados.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h2>Servicios</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Nombre</th>
+            <th>Plan</th>
+            <th>Intervalo (horas)</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for servicio in servicios %}
+        <tr>
+            <td>{{ servicio.nombre }}</td>
+            <td>{{ servicio.plan.nombre }}</td>
+            <td>{{ servicio.intervalo_horas|default:"—" }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="3">No hay servicios registrados.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

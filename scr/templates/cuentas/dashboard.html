@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard — Vilas Motor{% endblock %}
+
+{% block content %}
+<h1>Dashboard de mantención</h1>
+<p class="page-subtitle">Equipos y su próximo servicio. Alerta dentro de {{ umbral_alerta }} horas.</p>
+
+<table>
+    <thead>
+        <tr>
+            <th>Equipo</th>
+            <th>Tipo</th>
+            <th>Próximo servicio</th>
+            <th>Horas restantes</th>
+            <th>Estado</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for fila in filas %}
+        <tr>
+            <td>{{ fila.equipo.codigo }}</td>
+            <td>{{ fila.equipo.tipo_equipo.nombre }}</td>
+            <td>{{ fila.proximo.nombre|default:"—" }}</td>
+            <td>{% if fila.horas_restantes != None %}{{ fila.horas_restantes|floatformat:"0" }}{% else %}—{% endif %}</td>
+            <td>
+                {% if fila.en_alerta %}
+                    <span class="badge badge-alerta">Próximo a vencer</span>
+                {% else %}
+                    <span class="badge badge-ok">Al día</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="5">No hay equipos registrados.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

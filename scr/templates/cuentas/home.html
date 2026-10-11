@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block title %}Inicio — Vilas Motor{% endblock %}
+
+{% block content %}
+<h1>Panel de control</h1>
+<p class="page-subtitle">Resumen general de la flota y el mantenimiento.</p>
+
+<div class="stat-grid">
+    <div class="stat-card">
+        <span class="stat-number">{{ total_equipos }}</span>
+        <span class="stat-label">Equipos</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-number">{{ total_clientes }}</span>
+        <span class="stat-label">Clientes</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-number">{{ total_arriendos }}</span>
+        <span class="stat-label">Arriendos</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-number">{{ total_ot }}</span>
+        <span class="stat-label">Órdenes de trabajo</span>
+    </div>
+</div>
+{% endblock %}

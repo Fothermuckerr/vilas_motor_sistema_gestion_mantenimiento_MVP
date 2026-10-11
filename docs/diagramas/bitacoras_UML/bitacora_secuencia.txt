@@ -1,0 +1,3 @@
+Bitacora de cambios al diagrama de secuencia para alinearlo al MVP y al esquema SQL:
+
+1.- Cambiar carril "Técnico de Mantenimiento" a "Planificador" -cambiado. (El ingreso del horómetro en el MVP corresponde al Planificador o al Cliente, no al Técnico. El Técnico ejecuta la mantención, pero no reporta la lectura inicial, según la Bajada de requerimientos.)

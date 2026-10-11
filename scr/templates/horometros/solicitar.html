@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block title %}Solicitar horómetro — Vilas Motor{% endblock %}
+
+{% block content %}
+<h1>Solicitar horómetro</h1>
+<p class="page-subtitle">Crear una petición de reporte para un equipo.</p>
+
+<form method="post" class="form">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-primary">Solicitar</button>
+    <a class="btn btn-secondary" href="{% url 'horometros:solicitudes' %}">Cancelar</a>
+</form>
+
+<script>
+    var selectorEquipo = document.getElementById('id_equipo');
+    if (selectorEquipo) {
+        selectorEquipo.addEventListener('change', function () {
+            window.location = '?equipo=' + selectorEquipo.value;
+        });
+    }
+</script>
+{% endblock %}

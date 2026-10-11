@@ -1,0 +1,31 @@
+#Bitacora de las reglas de negocio en el esquema SQL a partir de UML.
+
+Daniel, estos cambios deben aplicarse en los diagramas para que reflejen los cambios. Se nombrará lo removido, agregado, cambiado y una argumentación entre parentesis usando como base Los Excels y el archivo del canón de la etapa uno "Bajada de requerimientos" entregado en el AII por el docente redactado por James.
+
+1.-Unique en id_plan de la tabla plan_mantención -removidas. 
+
+2.-stock_actual en tabla insumo -removida. (según Bajada de requerimientos, queda claro que el sistema no gestiona inventario, out of scope.) 
+
+3.-Añadir columna numero_ot. +Agregada como Varchar(20) y UNIQUE (sin la tabla orden_trabajo no hay trazabilidad, sin la columna numero_ot tampoco hay trazabilidad.) 
+
+4.-Añadir columna "notas" como varchar(255) a la tabla orden_trabajo_insumo. (esto permite guardar una nota de un insumo, esto es la columna "notas" de una planilla)
+
+5.-Renombrar tabla telemetria_jbc a telemetria_equipo. (Dado que en la "Bajada de Requerimientos" mencionan Grúas Horquilla, Excavadoras, Camiones, etc., te sugiero renombrarla a telemetria_equipo para que sea escalable a otras marcas(nosotros) en el futuro.)
+
+6.-Añadir columna "patente" como varchar(10) UNIQUE. (al observar el ppt, hay un dato casi imperceptible al lado del codigo, el PPU. Esto permite crear legalidad, si una grua choca carabineros no busca "v168", busca "SVTJ39" y asi no pierdes ese dato del excel)
+
+7.-NO USAR la tabla notificaciones en el backend. (El sistema no necesita almacenar notificaciones en esta etapa: las alertas de mantención próxima se calculan en tiempo real comparando el horómetro actual con el último cierre de OT contra el intervalo del servicio, y la fila se pinta de amarillo en el dashboard. Esto evita duplicar información. La tabla existía porque estaba pensada para escalar a un sistema multi-canal con distintos tipos de usuarios, pero en esta versión solo existe el planificador, no hay destinatarios alternativos ni canales automatizados, y es él quien inserta manualmente la información que le llega.
+Sin embargo... podria dejarse en el esquema pero sin uso, solo como argumentación de escalabidad en la sección de "Modelo de datos" del informe.)
+
+8.-Hallazgo: Añadir valor 'Interno' en el enum de la columna 'estado'. (En la bajada de requerimientos, justo al final, hay un Excel que revela en mayor profundidad
+como se planifica, y el estado de muchas maquinas salía con "interno", lo que nuestro SQL no consideró.)
+
+9.-Eliminar "id_tecnico" en orden_trabajo. (No sale de ningun lado, su lógica era: "para identificar al tecnico que ejecutó la tarea", eso lo hace la OT, y en ningun lado de los requerimiento se nombra esto. El criterio aplicado es que no hacemos un sistema para todos, solo para James, ella es la que ingresa los datos a mano de cada Orden, horometro, cliente, arriendo, fecha, tiempo, etc. El unico canal automatizado son de donde recibe datos, osea, whatsapp, correo, voz, y otros rudimentarios.) No un tecnico, dentro de nuestro sistema. No es para todos los actores, James es la que introduce a mano la información de los actores mediante interpretación, eso le duele, interpretar todo y meterlo a un Excel, nuestro programa busca ayudarle en ese proceso de interpretación, Con la idea de que, se puede automatizar si nos compran la idea de escalar a todos sus departamentos. Pero otra vez, esto está fuera de alcance.)
+
+10.-Añadir el tipo NULO al id_servicio_plan en la tabla orden_trabajo. (Una orden de trabajo con el tipo "correctivo" no tiene un plan de servicio, porque es eso, corregir algo inesperado, si fue NOT NULL, "explota.")
+
+11.-Añadir NOT NULL DEFAULT 'DISPONIBLE' a la columna 'estado' de la tabla equipo. (Un equipo nuevo siempre nace disponible; el esquema anterior la dejaba nullable y sin default, lo que permitía equipos sin estado. Se alinea con el modelo Django, que usa default=DISPONIBLE y no nulo.)
+
+12.-Añadir NOT NULL a 'fuente' en lectura_horometro y NOT NULL DEFAULT 'PENDIENTE' a 'estado' en solicitud_horometro. (Una lectura siempre tiene origen; una solicitud siempre nace pendiente. Se alinea con los modelos Django: fuente no nulo y estado default=PENDIENTE.)
+
+13.-En orden_trabajo: 'tipo' pasa a NOT NULL sin default, 'estado' a NOT NULL DEFAULT 'PROGRAMADA', y 'numero_ot' a NOT NULL. (El tipo lo elige el planificador al crear la OT)

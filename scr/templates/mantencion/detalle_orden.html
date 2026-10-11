@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ orden.numero_ot }} — Vilas Motor{% endblock %}
+
+{% block content %}
+<h1>{{ orden.numero_ot }}</h1>
+<p class="page-subtitle">{{ orden.get_tipo_display }} · {{ orden.get_estado_display }}</p>
+
+<p>
+    <a class="btn btn-primary" href="{% url 'mantencion:registrar_insumo' orden.id %}">Registrar insumo</a>
+    {% if orden.estado != 'CERRADA' %}
+        <a class="btn btn-danger" href="{% url 'mantencion:cerrar_orden' orden.id %}">Cerrar OT</a>
+    {% endif %}
+</p>
+
+<table>
+    <tbody>
+        <tr><th>Equipo</th><td>{{ orden.equipo.codigo }}</td></tr>
+        <tr><th>Servicio</th><td>{{ orden.servicio_plan|default:"—" }}</td></tr>
+        <tr><th>Tipo</th><td>{{ orden.get_tipo_display }}</td></tr>
+        <tr><th>Estado</th><td>{{ orden.get_estado_display }}</td></tr>
+        <tr><th>Fecha programada</th><td>{{ orden.fecha_programada|default:"—" }}</td></tr>
+        <tr><th>Fecha ejecución</th><td>{{ orden.fecha_ejecucion|default:"—" }}</td></tr>
+        <tr><th>Horómetro cierre</th><td>{{ orden.horometro_cierre|default:"—" }}</td></tr>
+        <tr><th>Observaciones</th><td>{{ orden.observaciones|default:"—" }}</td></tr>
+    </tbody>
+</table>
+
+<h2>Insumos usados</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Insumo</th>
+            <th>Cantidad</th>
+            <th>Notas</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for oi in orden.insumos.all %}
+        <tr>
+            <td>{{ oi.insumo.nombre }}</td>
+            <td>{{ oi.cantidad_usada }}</td>
+            <td>{{ oi.notas|default:"—" }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="3">Sin insumos registrados.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

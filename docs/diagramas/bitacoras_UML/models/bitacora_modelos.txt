@@ -1,0 +1,11 @@
+Cambios hechos a partir de la interpretación del diagrama de clases UML, usando como base técnica el esquema SQL hecho.
+
+1.-Eliminar método 'tienePermiso' en la clase rol. (Lo gestionamos con DJango con sus decoradores)
+
+2.-Agregar atributos de id_rol y id_cliente a la clase Usuario (Porque el SQL las agrega como FKs, el UML no lo considera.)
+
+3.-Eliminar el metodo "autenticar" en la clase Usuario. (Django lo puede gestionar mediante autheticate())
+
+4.-Eliminar los metodos "cambiarClave" y "desactivar" de la clase Usuario. (Django los gestiona con: user.set_password(nueva); user.is_active = False; user.save())
+
+5.-Eliminar métodos relacionado a stock en clase Insumo, ya que el sistema no gestiona inventario

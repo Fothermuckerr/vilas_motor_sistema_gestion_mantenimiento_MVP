@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block title %}Órdenes de trabajo — Vilas Motor{% endblock %}
+
+{% block content %}
+<h1>Órdenes de trabajo</h1>
+<p class="page-subtitle">Mantenciones programadas y ejecutadas.</p>
+
+<p>
+    <a class="btn btn-primary" href="{% url 'mantencion:crear_orden' %}">Crear OT</a>
+</p>
+
+<table>
+    <thead>
+        <tr>
+            <th>N° OT</th>
+            <th>Equipo</th>
+            <th>Tipo</th>
+            <th>Estado</th>
+            <th>Programada</th>
+            <th>Ejecución</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for orden in ordenes %}
+        <tr>
+            <td><a href="{% url 'mantencion:detalle_orden' orden.id %}">{{ orden.numero_ot }}</a></td>
+            <td>{{ orden.equipo.codigo }}</td>
+            <td>{{ orden.get_tipo_display }}</td>
+            <td>
+                {% if orden.estado == 'CERRADA' %}
+                    <span class="badge badge-ok">{{ orden.get_estado_display }}</span>
+                {% elif orden.estado == 'EN_CURSO' %}
+                    <span class="badge badge-warn">{{ orden.get_estado_display }}</span>
+                {% else %}
+                    <span class="badge badge-neutral">{{ orden.get_estado_display }}</span>
+                {% endif %}
+            </td>
+            <td>{{ orden.fecha_programada|default:"—" }}</td>
+            <td>{{ orden.fecha_ejecucion|default:"—" }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="6">No hay órdenes de trabajo registradas.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
