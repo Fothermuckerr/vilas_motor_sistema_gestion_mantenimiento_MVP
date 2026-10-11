@@ -1,4 +1,9 @@
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
+
+from arriendos.models import Arriendo
+from horometros.services import fuenteSugerida
 
 from .forms import EquipoForm, TipoEquipoForm
 from .models import Equipo, TipoEquipo
@@ -41,11 +46,32 @@ def crear_equipo(request):
 
 
 def detalle_equipo(request, pk):
-    """Ficha del equipo con su historial de lecturas, OT y arriendos."""
+    """Ficha del equipo con su historial de lecturas, OT y arriendos.
+
+    El enlace para pedir el horómetro llega con la fuente ya elegida, porque el
+    estado del equipo es el que dice a quién tiene sentido pedírselo.
+    """
     equipo = get_object_or_404(
         Equipo.objects.select_related('tipo_equipo').prefetch_related(
             'lecturas', 'solicitudes_horometro', 'ordenes_trabajo', 'arriendos__cliente'
         ),
         pk=pk,
     )
-    return render(request, 'flota/detalle_equipo.html', {'equipo': equipo})
+    return render(request, 'flota/detalle_equipo.html', {
+        'equipo': equipo,
+        'fuente_sugerida': fuenteSugerida(equipo),
+    })
+
+
+@login_required
+@require_POST
+def marcar_disponible(request, pk):
+    """Devuelve un equipo a disponible, una vez terminado su arriendo.
+
+    Mientras el arriendo siga vigente la máquina está comprometida con el
+    cliente, así que el estado no cambia.
+    """
+    equipo = get_object_or_404(Equipo, pk=pk)
+    if not Arriendo.objects.vigentes().filter(equipo=equipo).exists():
+        equipo.cambiarEstado(Equipo.Estado.DISPONIBLE)
+    return redirect('arriendos:arriendos')

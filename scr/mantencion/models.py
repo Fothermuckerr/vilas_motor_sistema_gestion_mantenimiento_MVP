@@ -90,6 +90,11 @@ class OrdenTrabajo(models.Model):
         self.fecha_programada = fecha
         self.save(update_fields=['fecha_programada'])
 
+    def iniciar(self):
+        """Pasa la OT de programada a en curso: el trabajo ya arrancó."""
+        self.estado = self.Estado.EN_CURSO
+        self.save(update_fields=['estado'])
+
     def registrarInsumo(self, insumo, cantidad, notas=None):
         """Registra un insumo real usado en esta OT."""
         return self.insumos.create(insumo=insumo, cantidad_usada=cantidad, notas=notas)

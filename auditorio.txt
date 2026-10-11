@@ -1,0 +1,145 @@
+--Auditorio conversatorio de vilas motor, Departamentos de planificacion y sistemes (02/09/2026) --
+//Hipotesis: No tienen sus datos centralizados, causando retrasos, duplicidad, y problemas de actualización.
+-- 11:30 intro por director de carrera --
+--11:45 --
+-James: "No tenemos un sistema, todo lo manejamos por planillas, y este proyecto me ayudaría en gran manera."
+-No tienen base de datos, ni historial para ningun tipo de flota, algunos se miden por horometros puro y otros por horometros/kilometraje.
+
+-Planillas: indicador de mantenimiento, planilla de mantencion y de insumos.
+
+-Brechas: "La solicitud, el excel, la revisión manual, el registro es manual."
+
+-Sistema propuesto: registro de orometro, mantenimiento, historial, alertas en un dashboard
+
+historial. reportes, interveciones.
+
+
+"Debemos digitalizar el area."
+
+///preguntas:
+
+¿DOnde se guarda la información de un equipo?
+*por planilla, en la nube (Google Drive)
+
+¿Q es lo mas frutrante de la planilla?
+//El reporte de horometro y el mantenimiento preventivo
+
+¿q otra area podria ayudar?
+//Bodega, pero tienen su propio sistema, debo mandar un correo para pedir el insumo|(tienen un CRM (softlan))
+
+¿q informcio aparte del horometro para gestionar el mantenimiento?
+//La del proximo mantenimiento y el del ultimo
+
+¿Q información en excel, cual deberia mantenerse si se implementa?
+//Migrar los ultimos 2 años de datos, ya q el historial se consiguie con las Ordenes de Trabajo
+
+
+
+¿Tienen otro sistema para otra area que deba mandar un reporte a planificacion?
+//Cada area tiene su propio sistema independiente que debe mandar por correo a planificacion 
+¿Otras areas usan planillas?
+¿Quien ingresa el dato cuando llega a la planilla y como lo recibe?
+//Solo James y su secretaria
+¿Que tipo de horometro usan, analogico o digital y como llega el dato?
+//Digital y lo manda el cliente.
+¿La cobertura de señal tienen?
+//Si, tienen y se comunican por area mediante el cliente.
+¿Q mas hacen con los datos?
+//No hago checklist, solo coordino los mantenimientos e insumos
+
+¿Quien se encarga de q un registro esté mal?
+//Si llega a tener fallas, yo no lo veo, se encarga otra persona. Yo solo no lo gestiono y me entero por voz y no chequeo su mantencion. (whatsapp/verbal)
+
+¿Respecto bodega, que deben mirar?
+//Solo los insumos
+
+¿Q hcen los datos del GPS?
+//Solo sirve para ver la posición, no se guarda
+
+¿TIenen datos con otra sucursal?
+//No, cada sucursal es independiente con su propia bodega y mantenmiento
+
+¿Q es lo mas concreto?
+//El horometro, y la maquinaria de mantencion. alertas
+
+¿si el horometro falla?
+//Pasa q aveces se apaga, no registra, o se altera ahí tenemos que triangular con ventas y el cliente, para luego pasar el dato a cobranza y cobrar al cliente .
+
+¿Existe un sistema centralizado?
+//solo para cada area, nada centraliza cada area.
+
+¿cuantas solis al mes?
+//Mensual unas 25 en mantenimiento, no veo los arriendo, solo los solicito a ventas. yo coordino traslados y mantenimientos
+
+//Estoy todo el día enviando correos
+
+¿Alguna vez probaron un sistema que centralice todo los sistemas?
+//Nop, siempre se ha trabajado así
+
+¿Si queremos darle una solución, tienen factibilidades economicas?
+//No podria responder eso.
+
+¿Cual es la falla más habitual?
+//EN camiones los frenos, las gruas las hidraulicas
+
+¿Mayor problema?
+//El horometro, es mi mayor problema.
+
+//No tengo registros historicos, debo cuadrar.
+
+¿Tipo de clientes?
+//Faenas, y urbanos. 
+
+//Los horometros de Arica me lo entrega Arica, no manejamos esos datos. (por correo)
+ 
+En el excel, mantenimiento, columna dias sin registros. ¿Que pasa con la maquina?
+//Maquinas sin uso, estacionarias.
+
+
+¿cuanto tiempo puede pasar una máquina en faena?
+//1-2 meses
+
+Flujo completo del proceso
+Cliente -> Solicitud de información -> REcepcion de informacion -> Actualizar el excel -> REvision de horas -> programación de mantenimiento -> Registro de intervencion -> actualizacion del historial.
+
+//A veces consigo información sobre la pagina de los equipos (JCB) pero todo por el excel.
+//Lo escencial: quien, dato de mantenimientos.
+
+**La cuestión es hacerle un programa para que James centralice toda esa información**
+
+--Bitacora de las entrevistas informales --
+--13:20---
+###After the conversatorio muchos grupos fueron a acercarse al podio para preguntar más a los representantes.
+
+###Noté que todos preguntaban más detalles sobre el problema y/o flujo del proceso, pero no noté que nadie realmente viera o nombrara lo que les pasa.
+
+###Esperé que se descongestionara, escuchando atentamente a las respuestas de los representantes (Escuchar más ayuda), finalmente, marcelo quedó solo y me acerqué.
+--13:26--
+*Marcelo, hola, soy Francisco Vera, del area de informática, puedo hacerle una pregunta un poco personal? 
+//Si por supuesto 
+
+*Debe ser dificil ser de su área ya que dirigen multiples sistemas, ¿Cual es la queja más recurrente?
+//La capa 8, errores de typeo.
+
+*Ya veo... Cuando un dato falla, James se lo informa?, ¿trabajan directamente?.
+//Mmm, en realidad arreglo los problemas de entrada de las diferentes áreas. Cada área tiene su propio sistema e ingresan mal datos.
+(Osea que trabajan indirectamente, James avisa por correo a una área y esa área se contacta con Marcelo)
+
+*Vale Marcelo, muchas gracias.
+//No hay problema.
+--13:28--
+###Cuando todos los grupos terminaron de hablar con James, quedé yo, e hice lo mismo que hice con marcelo.
+
+*James, hola, Francisco vera del area de informática. Disculpa, puedo hacerle algunas preguntas un poco más personales?, Debe ser muy estresante tener que estar coordinando todo mediante un excel, no?
+// Si, a veces es estresante tener que cuadrar datos y estar enviando correos a todo el día, a cada rato.
+*Claro, y la peor parte esque usted está en medio de "todo", sin su planificación, no se decide algo.
+//Correcto, a veces pierdo sanidad haciendo todo a mano.
+*Que terrible debe ser llevar todo eso, además si un dato está mal, usted se contacta con el aŕea no?.
+//Si, y eso puede tomar un tiempo, el horometro más que nada es lo que más me cuesta cuadrar y administrar.
+*Ha habido alguna vez que un dato le quitó el sueño?
+//Si, pero mi secretaria me ayuda, aunque como es nueva, debo enseñar el flujo.
+*Comprendo, espero poder entregarle una propuesta que pueda ayudarle, muchas gracias.
+//Gracias a tí. 
+--13:33--
+###Conclusiones: James es la que sufre tener que cuadrar todo mediante correos en un excel. Necesitamos crearle un sistema para que ella pueda ver los datos que le compete y automatice la solicitud de actualización de información (ej: un botón de "consultar" que redirija a James al canal adecuado para que contacte al responsable de un dato, evitando que James pierda noción de que celda está intentando recuperar.) La principal inquietud de james es no poder cuadrar los horometros. El sistema debe estar enfocado en resolverle el trabajo a James, no puede ser que deba esperar N horas un dato VÍA email mientras debe llevar la cuenta de qué dato pidió a quién y donde debe ir
+###Marcelo no parece tener problemas, es como dijo el director, el solo es apoyo de todas las areas, y su testimonio explica que él solo resuelve lo errores de tipeo que son comunicados por James.

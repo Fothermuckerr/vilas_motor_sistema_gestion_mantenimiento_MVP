@@ -5,8 +5,9 @@ from . import views
 app_name = 'horometros'
 
 urlpatterns = [
-    path('solicitudes/', views.lista_solicitudes, name='solicitudes'),
-    path('solicitudes/nueva/', views.crear_solicitud, name='crear_solicitud'),
-    path('lecturas/', views.lista_lecturas, name='lecturas'),
-    path('lecturas/nueva/', views.registrar_lectura, name='registrar_lectura'),
+    path('horometros/', views.index, name='index'),
+    path('horometros/solicitudes/nueva/', views.crear_solicitud, name='crear_solicitud'),
+    path('horometros/solicitudes/<int:pk>/lectura/', views.registrar_lectura, name='registrar_lectura'),
+    path('horometros/solicitudes/<int:pk>/borrar/', views.borrar_solicitud, name='borrar_solicitud'),
+    path('horometros/equipos/<int:pk>/arrendatario/', views.arrendatario_del_equipo, name='arrendatario_del_equipo'),
 ]

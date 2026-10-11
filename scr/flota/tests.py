@@ -4,7 +4,8 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from cuentas.models import Rol, Usuario
+from arriendos.models import Arriendo
+from cuentas.models import Cliente, Rol, Usuario
 from flota.models import Equipo, TipoEquipo
 from horometros.models import LecturaHorometro
 
@@ -46,6 +47,34 @@ class EquipoTest(TestCase):
         self.assertEqual(self.equipo.ultimaLectura().valor, Decimal('150.0'))
 
 
+class MarcarDisponibleTest(TestCase):
+    """La vista solo devuelve el equipo a disponible cuando su arriendo terminó."""
+
+    def setUp(self):
+        self.rol, _ = Rol.objects.get_or_create(nombre='planificador', defaults={'descripcion': 'Planificador del sistema de gestión de mantenimiento'})
+        self.usuario = Usuario.objects.create_user(email='plan@vilas.cl', password='test1234', nombre='Planificador')
+        self.tipo = TipoEquipo.objects.create(nombre='Generador', unidad_medida=TipoEquipo.UnidadMedida.HORAS)
+        self.equipo = Equipo.objects.create(tipo_equipo=self.tipo, codigo='EQ-001')
+        self.cliente = Cliente.objects.create(rut='11111111-1', razon_social='Cliente X')
+        self.client.force_login(self.usuario)
+
+    def test_marcar_disponible(self):
+        self.equipo.cambiarEstado(Equipo.Estado.EN_FAENA)
+        response = self.client.post(reverse('flota:marcar_disponible', args=[self.equipo.id]))
+        self.assertRedirects(response, reverse('arriendos:arriendos'))
+        self.equipo.refresh_from_db()
+        self.assertEqual(self.equipo.estado, Equipo.Estado.DISPONIBLE)
+
+    def test_no_cambia_si_el_arriendo_sigue_vigente(self):
+        Arriendo.objects.create(
+            equipo=self.equipo, cliente=self.cliente, fecha_inicio=timezone.localdate()
+        )
+        self.equipo.cambiarEstado(Equipo.Estado.EN_FAENA)
+        self.client.post(reverse('flota:marcar_disponible', args=[self.equipo.id]))
+        self.equipo.refresh_from_db()
+        self.assertEqual(self.equipo.estado, Equipo.Estado.EN_FAENA)
+
+
 class FlotaViewsTest(TestCase):
     def setUp(self):
         self.rol, _ = Rol.objects.get_or_create(nombre='planificador', defaults={'descripcion': 'Planificador del sistema de gestión de mantenimiento'})
@@ -58,12 +87,33 @@ class FlotaViewsTest(TestCase):
         response = self.client.get(reverse('flota:detalle_equipo', args=[self.equipo.id]))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'EQ-001')
-        self.assertContains(response, 'Solicitar horómetro')
         self.assertContains(response, 'Crear OT')
         self.assertContains(response, 'Crear arriendo')
 
+    def test_detalle_enlaza_con_la_fuente_que_corresponde_al_estado(self):
+        """El enlace llega con la fuente ya elegida: el estado dice a quién pedirle."""
+        response = self.client.get(reverse('flota:detalle_equipo', args=[self.equipo.id]))
+        self.assertContains(response, 'Solicitar horómetro')
+        self.assertContains(response, '?fuente=TECNICO')
+
+        self.equipo.cambiarEstado(Equipo.Estado.EN_FAENA)
+        response = self.client.get(reverse('flota:detalle_equipo', args=[self.equipo.id]))
+        self.assertContains(response, '?fuente=CLIENTE')
+
+        self.equipo.cambiarEstado(Equipo.Estado.EN_MANTENIMIENTO)
+        response = self.client.get(reverse('flota:detalle_equipo', args=[self.equipo.id]))
+        self.assertContains(response, '?fuente=TELEMETRIA')
+
+    def test_detalle_no_ofrece_arrendar_un_equipo_que_no_esta_disponible(self):
+        self.equipo.cambiarEstado(Equipo.Estado.EN_FAENA)
+        response = self.client.get(reverse('flota:detalle_equipo', args=[self.equipo.id]))
+        self.assertNotContains(response, 'Crear arriendo')
+
     def test_preseleccion_equipo_en_crear_solicitud(self):
-        response = self.client.get(reverse('horometros:crear_solicitud'), {'equipo': self.equipo.id})
+        response = self.client.get(
+            reverse('horometros:crear_solicitud'),
+            {'fuente': 'TECNICO', 'equipo': self.equipo.id},
+        )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, f'value="{self.equipo.id}" selected')
 

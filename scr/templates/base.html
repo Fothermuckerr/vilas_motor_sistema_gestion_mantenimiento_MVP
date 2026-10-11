@@ -26,8 +26,9 @@
                 <nav class="main-nav">
                     <a href="{% url 'cuentas:dashboard' %}">Dashboard</a>
                     <a href="{% url 'cuentas:catalogos' %}">Catálogos</a>
-                    <a href="{% url 'horometros:solicitudes' %}">Horómetros</a>
+                    <a href="{% url 'horometros:index' %}">Horómetros</a>
                     <a href="{% url 'arriendos:arriendos' %}">Arriendos</a>
+                    <a href="{% url 'mantencion:planes' %}">Mantención</a>
                     <a href="{% url 'mantencion:ordenes_trabajo' %}">Órdenes de trabajo</a>
                 </nav>
                 {% if user.is_authenticated %}

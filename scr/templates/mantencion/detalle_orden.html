@@ -6,12 +6,17 @@
 <h1>{{ orden.numero_ot }}</h1>
 <p class="page-subtitle">{{ orden.get_tipo_display }} · {{ orden.get_estado_display }}</p>
 
-<p>
+<div class="celda-acciones">
     <a class="btn btn-primary" href="{% url 'mantencion:registrar_insumo' orden.id %}">Registrar insumo</a>
-    {% if orden.estado != 'CERRADA' %}
+    {% if orden.estado == 'PROGRAMADA' %}
+        <form method="post" action="{% url 'mantencion:iniciar_orden' orden.id %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-naranja">Marcar en curso</button>
+        </form>
+    {% elif orden.estado == 'EN_CURSO' %}
         <a class="btn btn-danger" href="{% url 'mantencion:cerrar_orden' orden.id %}">Cerrar OT</a>
     {% endif %}
-</p>
+</div>
 
 <table>
     <tbody>

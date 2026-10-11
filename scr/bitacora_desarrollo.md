@@ -153,3 +153,193 @@ N.4: OrdenTrabajo.cerrar() también fija fecha_ejecucion, dato que el boceto omi
 
 N.1: numero_ot se genera automáticamente al crear la OT (OT-0001, OT-0002...).
 N.2: arriendo con fecha_termino nula = vigente (regla ya documentada en IV).
+
+
+#Perfectivos.
+
+1.Un contrato se queda visible mientras se cumpla alguna de estas dos cosas:
+
+   - Vigente — sin fecha de término (NULL). Es el contrato abierto.
+   - Dentro de la ventana — se cerró hace menos de N horas. Así ves que el cierre
+     de hoy ocurrió y se limpia solo al vencer el plazo.
+   - Pendiente de traspaso — el equipo todavía no está DISPONIBLE. Esta condición
+     no expira con el reloj, expira con tu acción
+
+#Perfectivos: bandeja de horómetros.
+
+1.Se reestructura el módulo como bandeja de trabajo, igual que arriendos. Antes
+  eran dos listados sueltos (solicitudes y lecturas) que no se hablaban:
+
+   - SolicitudHorometro.cumplir() y marcarVencida() existían en el modelo pero no
+     los llamaba ninguna vista: la solicitud nacía PENDIENTE y moría PENDIENTE.
+   - La lectura registrada nunca se vinculaba a la solicitud que la había pedido.
+   - La lectura nacía validada=False y no había forma de validarla, así que el
+     badge "Pendiente" era permanente.
+
+2.Regla de la bandeja: aparece toda solicitud que tenga un paso pendiente.
+
+   - PENDIENTE — siempre, sin importar cuánto tiempo pase.
+   - CUMPLIDA o VENCIDA — solo dentro de la ventana.
+   - Sin deduplicar por equipo, a diferencia de arriendos: dos pendientes de la
+     misma máquina son dos obligaciones distintas y el planificador necesita
+     verlas para contrastar el dato real.
+
+3.Columna Acción: "Registrar lectura" (btn-secondary) y "Marcar vencida"
+  (btn-danger, con <dialog> de confirmación). Un solo acto cierra el paso: crea
+  la lectura, llama cumplir() y actualiza equipo.horometro_actual. La lectura
+  nace validada=True porque la tipea el planificador, que es quien confirma.
+
+4.Se agrega SolicitudHorometro.fecha_resolucion (migración 0002, con backfill de
+  las ya resueltas): es la que gobierna la ventana, igual que fecha_termino en
+  arriendos. La lista de ventanas pasa a vilas_motor/ventanas.py para que las dos
+  bandejas compartan la misma preferencia.
+
+5.El formulario de solicitud limita el equipo a los que están EN FAENA y el
+  cliente al de su arriendo más reciente: la máquina puede seguir en faena con el
+  contrato ya cerrado (devolución tardía) y el horómetro se le sigue pidiendo a
+  quien la tiene. Esto invierte el test 'test_arriendo_cerrado_no_cuenta', que
+  afirmaba lo contrario.
+
+N.1: Hallazgo: el lookup '__date__gte' sobre un DateTimeField no devuelve nada en
+     este entorno (SQLite + USE_TZ=True). Con una fecha de hoy y límite de ayer
+     dio [] mientras el '__gte' equivalente devolvió [25]. La ventana de
+     horómetros compara contra un datetime.
+
+N.2: La ventana se cuenta en horas en horómetros y en días en arriendos, porque
+     fecha_termino es un DateField y fecha_resolucion un DateTimeField.
+
+N.3: Hueco conocido: las lecturas validada=False (telemetría) no tienen acción de
+     validación en la bandeja. Todavía no hay ingesta real de telemetría, así que
+     solo las produce el seed.
+
+6.Las rutas del módulo pasan a colgar de /horometros/ (antes /solicitudes/ y
+  /lecturas/ quedaban a nivel raíz, fuera del patrón de las demás apps).
+
+N.4: Se agrega un aviso en la vista de solicitud cuando no hay equipos en faena:
+     el desplegable salía vacío sin explicación.
+
+#Perfectivos: fuente por solicitud.
+
+1.Se agrega SolicitudHorometro.fuente (migración 0003). Dice a quién se le pidió
+  el dato y no es decorativa: gobierna qué equipos se pueden elegir.
+
+   - Cliente    -> equipos EN_FAENA (el que la tiene es el arrendatario)
+   - Técnico    -> equipos DISPONIBLE (el técnico revisa la máquina en bodega)
+   - Telemetría -> cualquier estado
+
+2.El desplegable de fuente va primero y recarga con ?fuente=: el filtrado de
+  equipos lo hace el servidor, no el navegador. La celda del cliente es
+  informativa: consulta /horometros/equipos/<id>/arrendatario/ (JSON) y mientras
+  llega muestra un spinner. Elegir el equipo ya no recarga la página.
+
+3.El cliente deja de ser campo del formulario y pasa a derivarse del equipo
+  (SolicitudHorometro.cliente queda nullable, migración 0003). Una solicitud al
+  técnico o a la telemetría no se le pide a nadie de afuera, así que no hay
+  cliente que inyectar.
+
+4.La lectura hereda la fuente de la solicitud: el formulario de respuesta ya no
+  pregunta la fuente, solo el valor. Se elimina el registro de lectura directa,
+  que quedaba subsumido por las tres fuentes.
+
+5.'Marcar vencida' se reemplaza por 'Borrar' con confirmación doble. El estado
+  VENCIDA sale del modelo y las vencidas existentes vuelven a PENDIENTE (migración
+  0003): una solicitud se cierra ingresando el dato o se borra, y la que nunca
+  recibió su dato es una obligación viva, no un estado final.
+
+6.fuenteSugerida() elige la fuente del enlace de la ficha según el estado del
+  equipo: faena -> cliente, bodega -> técnico, el resto -> telemetría.
+
+N.5: Hallazgo: la migración 0003 copió la fuente de la lectura vinculada, y una
+     lectura sí puede ser PLANIFICACION, que no es fuente de solicitud. La 0004
+     normaliza esos casos a CLIENTE.
+
+N.6: Hallazgo: con la flota entera DISPONIBLE no hay a quién pedirle en faena y el
+     desplegable de la fuente Cliente queda vacío. El formulario expone
+     sinEquipos() y la vista muestra un aviso que explica la regla.
+
+7.Registrar lectura deja de ser una página y pasa a ser un <dialog> de la bandeja.
+  El botón de la fila lleva el encabezado en atributos data, así que abrirlo no
+  consulta al servidor. Si el POST no pasa la validación, la vista reenvía la
+  bandeja con el diálogo abierto (data-abrir-al-cargar) para que el error quede a
+  la vista y no se pierda lo que se había escrito. Se elimina registrar.html.
+
+N.7: El formulario del diálogo se renderiza con {{ form_lectura.as_p }}, la misma
+     clase que valida el POST, para que los campos y las reglas no se separen.
+
+8.La bandeja y el historial de lecturas pasan a ser dos celdas plegables de la
+  misma página (/horometros/, ruta renombrada a horometros:index). Nacen cerradas
+  y el estado se recuerda en localStorage (static/js/plegables.js), porque el
+  despliegue es una preferencia de la persona y no de la pantalla. Se eliminan la
+  vista lista_lecturas, su ruta y las plantillas bandeja.html y lecturas.html.
+
+N.8: Las celdas usan <details>/<summary> nativo: abrir y cerrar no necesita
+     JavaScript, solo recordar cómo quedaron.
+
+9.El alta de solicitud se muda a un diálogo de la bandeja: el botón "Solicitar
+  lectura" vive dentro de la celda y abre el formulario ahí mismo, sin pasar de
+  página. No hay paso de confirmación: la solicitud se puede borrar, así que el
+  error se corrige después y no antes. Se elimina la plantilla solicitar.html.
+
+N.9: Hallazgo: ventana.js reemplazaba el search entero ("?ventana=24"), así que se
+     llevaba puestos los otros parámetros. En la bandeja de arriendos no se notaba
+     porque es el único; en horómetros convive con fuente y nueva, y el diálogo se
+     cerraba solo al elegir la fuente. Ahora hay un ayudante compartido
+     (static/js/parametros.js, recargarCon) que cambia un parámetro y deja quietos
+     los demás. arriendos.html también carga ese archivo.
+
+N.10: Hallazgo: la fuente no tiene valor por defecto y Django ya agregaba su opción
+      vacía ('---------'). Se descarta y se reemplaza por una con nombre
+      ('— Elige una fuente —'), para no mostrar dos opciones vacías.
+
+11.El dashboard deja de ser un informe de pronóstico y pasa a ser un panel de
+  trabajo: arriba una franja de contadores (contexto, no trabajo), después las
+  colas de "qué hacer" (pedir horómetros, mantención vencida, por vencer, órdenes
+  abiertas y equipos sin devolver, cada una con su enlace), y abajo el pronóstico
+  por equipo. La entrada / redirige al dashboard: queda un solo panel y se elimina
+  la plantilla home.html.
+
+N.11: Hallazgo: el dashboard pintaba igual un servicio VENCIDO y uno POR VENCER.
+      estaEnAlerta devuelve horas_restantes <= umbral, que incluye los negativos,
+      así que un intervalo ya cumplido se mostraba como "próximo a vencer". Ahora
+      se separan: VENCIDO (rojo), POR_VENCER (ámbar), AL_DÍA (verde) y SIN_PLAN
+      (gris). La bajada lo pedía ("generar alertas cuando esté próximo a cumplir su
+      intervalo") y su templates.txt también ("alerta si está en umbral o vencido").
+
+N.12: El dashboard recorre los equipos y calcula en Python (N+1). Con la flota
+      actual está bien; con cientos de equipos habrá que cachear o llevar el cálculo
+      a una consulta. Queda anotado para no perderlo.
+
+13.Las órdenes de trabajo ganan administración: editar y borrar. Ambas solo
+  aplican a PROGRAMADA y EN_CURSO; una CERRADA es historial de mantención (su
+  horómetro de cierre alimenta la calculadora del próximo servicio) y no se toca,
+  ni para editar ni para borrar. Borrar es un POST con doble confirmación, como la
+  bandeja de horómetros, y se lleva los insumos cargados.
+
+N.13: No hay un rol "admin" separado: el planificador es quien administra. Es la
+      decisión tomada, porque el único actor del MVP es el planificador y no hay
+      que abrir una puerta de permisos que hoy no se usa.
+
+14.La OT completa su máquina de estados: PROGRAMADA → (iniciar) EN_CURSO →
+  (cerrar) CERRADA. El botón "Iniciar" (naranja) pasa a en curso, y solo una OT en
+  curso se puede cerrar: ya no existe el salto directo de programada a cerrada. El
+  alta se muda a un diálogo de la lista (igual que el alta de solicitud en
+  horómetros) y se elimina crear_orden.html. Cerrar conserva su página porque pide
+  el horómetro de cierre.
+
+15.La página de planes gana una columna Acción: editar y borrar, tanto para
+  planes como para servicios. Borrar respeta las dependencias: un plan con
+  servicios no se borra (primero hay que quitar sus servicios) y un servicio con
+  OTs no se borra (es historial). Editar un servicio sí se permite aunque tenga
+  OTs: cambiar el intervalo redefine el plan hacia adelante, no toca el historial.
+  El nav suma "Mantención" → /planes/, porque la página estaba huérfana.
+
+N.14: La confirmación de borrado en dos pasos estaba duplicada (horómetros y
+      OTs). Se extrajo a static/js/borrado.js (iniciarCierreDeDialogos +
+      iniciarBorradoEnDosPasos), que ahora comparten las tres páginas.
+
+16.El pronóstico del dashboard gana su botón de acción: cada fila tiene "Crear
+  OT", que abre el alta con el equipo y el servicio vencido ya seleccionados. Es
+  la respuesta a "¿qué hago con un vencido?": programar la OT, ejecutarla y
+  cerrarla con el nuevo horómetro, que es lo que recalcula el pronóstico. El alta
+  acepta el parámetro ?servicio= para preseleccionar el servicio, igual que ya
+  hacía con ?equipo=.

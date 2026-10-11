@@ -7,9 +7,11 @@
 <p class="page-subtitle">{{ equipo.tipo_equipo.nombre }} · {{ equipo.get_estado_display }}</p>
 
 <p>
-    <a class="btn btn-primary" href="{% url 'horometros:crear_solicitud' %}?equipo={{ equipo.id }}">Solicitar horómetro</a>
+    <a class="btn btn-primary" href="{% url 'horometros:crear_solicitud' %}?fuente={{ fuente_sugerida }}&equipo={{ equipo.id }}">Solicitar horómetro</a>
     <a class="btn btn-secondary" href="{% url 'mantencion:crear_orden' %}?equipo={{ equipo.id }}">Crear OT</a>
+    {% if equipo.estado == 'DISPONIBLE' %}
     <a class="btn btn-secondary" href="{% url 'arriendos:crear_arriendo' %}?equipo={{ equipo.id }}">Crear arriendo</a>
+    {% endif %}
 </p>
 
 <table>
