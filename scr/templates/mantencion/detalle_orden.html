@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}{{ orden.numero_ot }} — Vilas Motor{% endblock %}
 
@@ -14,7 +15,7 @@
             <button type="submit" class="btn btn-naranja">Marcar en curso</button>
         </form>
     {% elif orden.estado == 'EN_CURSO' %}
-        <a class="btn btn-danger" href="{% url 'mantencion:cerrar_orden' orden.id %}">Cerrar OT</a>
+        <button type="button" class="btn btn-danger" data-abrir-cierre>Cerrar OT</button>
     {% endif %}
 </div>
 
@@ -54,4 +55,27 @@
         {% endfor %}
     </tbody>
 </table>
+
+{% if orden.estado == 'EN_CURSO' %}
+<dialog id="dialogo-cerrar-orden" class="dialogo-confirmacion"
+        {% if abrir_cierre %}data-abrir-al-cargar="si"{% endif %}>
+    <p class="dialogo-contexto">
+        Horómetro del equipo {{ orden.equipo.codigo }} al cerrar la orden
+        {{ orden.numero_ot }}. Horómetro actual: {{ orden.equipo.horometro_actual }}.
+        La lectura no puede ser menor.
+    </p>
+    <form method="post" class="form" id="formulario-cerrar-orden"
+          action="{% url 'mantencion:cerrar_orden' orden.id %}">
+        {% csrf_token %}
+        {{ form_cierre.as_p }}
+        <div class="dialogo-acciones">
+            <button type="button" class="btn btn-danger" data-cerrar-dialogo>No</button>
+            <button type="submit" class="btn btn-si">Sí, cerrar</button>
+        </div>
+    </form>
+</dialog>
+{% endif %}
+
+<script src="{% static 'js/borrado.js' %}"></script>
+<script src="{% static 'js/cierre-orden.js' %}"></script>
 {% endblock %}

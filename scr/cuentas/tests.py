@@ -93,3 +93,35 @@ class DashboardTest(TestCase):
             response,
             reverse('mantencion:crear_orden') + f'?equipo={self.equipo.id}&servicio={servicio.id}',
         )
+
+
+class UsuarioManagerTest(TestCase):
+    """Anti-escalada de privilegios: las cuentas no pueden elegir su rol ni sus permisos."""
+
+    def setUp(self):
+        Rol.objects.get_or_create(nombre='planificador', defaults={'descripcion': 'Planificador'})
+
+    def test_create_user_rechaza_rol_y_permisos(self):
+        for campo in ('rol', 'is_staff', 'is_superuser'):
+            with self.assertRaises(ValueError):
+                Usuario.objects.create_user(email='a@v.cl', password='x', nombre='A', **{campo: True})
+
+    def test_create_user_asigna_rol_planificador_sin_superusuario(self):
+        u = Usuario.objects.create_user(email='b@v.cl', password='x', nombre='B')
+        self.assertEqual(u.rol.nombre, 'planificador')
+        self.assertTrue(u.is_staff)
+        self.assertFalse(u.is_superuser)
+        self.assertNotEqual(u.password, 'x')  # se guarda el hash, no la contraseña
+
+    def test_create_superuser(self):
+        u = Usuario.objects.create_superuser(email='c@v.cl', password='x', nombre='C')
+        self.assertTrue(u.is_superuser and u.is_staff and u.is_active)
+
+    def test_email_obligatorio(self):
+        with self.assertRaises(ValueError):
+            Usuario.objects.create_user(email='', password='x', nombre='D')
+
+    def test_rol_inexistente(self):
+        Rol.objects.all().delete()
+        with self.assertRaises(ValueError):
+            Usuario.objects.create_user(email='e@v.cl', password='x', nombre='E')

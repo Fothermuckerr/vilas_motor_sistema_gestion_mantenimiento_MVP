@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from django.test import TestCase
 from django.urls import reverse
+from django.utils.formats import localize
 
 from cuentas.models import Rol, Usuario
 from flota.models import Equipo, TipoEquipo
@@ -135,6 +136,61 @@ class OrdenesTrabajoViewsTest(TestCase):
         self.assertRedirects(response, reverse('mantencion:detalle_orden', args=[orden.id]))
         orden.refresh_from_db()
         self.assertEqual(orden.estado, OrdenTrabajo.Estado.CERRADA)
+
+    def test_cerrar_orden_deja_la_lectura_del_tecnico(self):
+        """Cerrar es el momento en que el dato real entra: queda lectura y se mueve el equipo."""
+        orden = OrdenTrabajo.objects.create(equipo=self.equipo, tipo=OrdenTrabajo.Tipo.PREVENTIVA, numero_ot='OT-012')
+        orden.iniciar()
+        self.client.post(reverse('mantencion:cerrar_orden', args=[orden.id]), {
+            'horometro_cierre': '350.0',
+        })
+        lectura = self.equipo.lecturas.get()
+        self.assertEqual(lectura.valor, Decimal('350.0'))
+        self.assertEqual(lectura.fuente, 'TECNICO')
+        self.assertEqual(lectura.usuario, self.usuario)
+        self.assertTrue(lectura.validada)
+        self.assertEqual(lectura.observacion, 'Cierre OT-012')
+        self.equipo.refresh_from_db()
+        self.assertEqual(self.equipo.horometro_actual, Decimal('350.0'))
+
+    def test_cerrar_orden_rechaza_horometro_menor_al_actual(self):
+        """El horómetro no retrocede: un cierre con lectura menor no pasa."""
+        self.equipo.actualizarHorometro(Decimal('400.0'))
+        orden = OrdenTrabajo.objects.create(equipo=self.equipo, tipo=OrdenTrabajo.Tipo.PREVENTIVA, numero_ot='OT-013')
+        orden.iniciar()
+        response = self.client.post(reverse('mantencion:cerrar_orden', args=[orden.id]), {
+            'horometro_cierre': '350.0',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertFormError(
+            response.context['form_cierre'],
+            'horometro_cierre',
+            'El horómetro de cierre no puede ser menor al horómetro actual del equipo.',
+        )
+        self.assertContains(response, 'data-abrir-al-cargar="si"')
+        orden.refresh_from_db()
+        self.assertEqual(orden.estado, OrdenTrabajo.Estado.EN_CURSO)
+        self.assertIsNone(orden.horometro_cierre)
+        self.assertEqual(self.equipo.lecturas.count(), 0)
+        self.equipo.refresh_from_db()
+        self.assertEqual(self.equipo.horometro_actual, Decimal('400.0'))
+
+    def test_el_cierre_vive_en_un_dialogo(self):
+        """El cierre se resuelve en la ficha, y el diálogo avisa el horómetro actual."""
+        orden = OrdenTrabajo.objects.create(equipo=self.equipo, tipo=OrdenTrabajo.Tipo.PREVENTIVA, numero_ot='OT-014')
+        orden.iniciar()
+        response = self.client.get(reverse('mantencion:detalle_orden', args=[orden.id]))
+        self.assertContains(response, 'id="dialogo-cerrar-orden"')
+        self.assertContains(response, 'data-abrir-cierre')
+        self.assertContains(response, f'Horómetro actual: {localize(self.equipo.horometro_actual)}')
+        self.assertNotContains(response, 'data-abrir-al-cargar="si"')
+
+    def test_la_lista_abre_el_dialogo_de_cierre(self):
+        """El botón Cerrar de la lista llega a la ficha con el diálogo ya abierto."""
+        orden = OrdenTrabajo.objects.create(equipo=self.equipo, tipo=OrdenTrabajo.Tipo.PREVENTIVA, numero_ot='OT-015')
+        orden.iniciar()
+        response = self.client.get(reverse('mantencion:detalle_orden', args=[orden.id]) + '?cerrar=1')
+        self.assertContains(response, 'data-abrir-al-cargar="si"')
 
     def test_iniciar_orden(self):
         orden = OrdenTrabajo.objects.create(equipo=self.equipo, tipo=OrdenTrabajo.Tipo.PREVENTIVA, numero_ot='OT-030')
@@ -297,3 +353,67 @@ class PlanesViewsTest(TestCase):
         )
         self.client.post(reverse('mantencion:borrar_servicio', args=[servicio.id]))
         self.assertTrue(ServicioPlan.objects.filter(pk=servicio.pk).exists())
+
+
+class OrdenTrabajoServicioDelTipoTest(TestCase):
+    """Defecto hallado en la prueba manual M5: el servicio debe ser del tipo del equipo."""
+
+    def setUp(self):
+        from flota.models import Equipo, TipoEquipo
+        from mantencion.forms import OrdenTrabajoForm
+        self.Form = OrdenTrabajoForm
+        self.grua = TipoEquipo.objects.create(nombre='Grúa', unidad_medida=TipoEquipo.UnidadMedida.HORAS)
+        self.gen = TipoEquipo.objects.create(nombre='Generador', unidad_medida=TipoEquipo.UnidadMedida.HORAS)
+        self.equipo = Equipo.objects.create(tipo_equipo=self.grua, codigo='V1')
+        self.servicio_grua = ServicioPlan.objects.create(
+            plan=PlanMantencion.objects.create(tipo_equipo=self.grua, nombre='Plan Grúa'),
+            nombre='500 HORAS', intervalo_horas=500)
+        self.servicio_gen = ServicioPlan.objects.create(
+            plan=PlanMantencion.objects.create(tipo_equipo=self.gen, nombre='Plan Gen'),
+            nombre='500 HORAS', intervalo_horas=500)
+
+    def _datos(self, servicio):
+        return {'equipo': self.equipo.pk, 'servicio_plan': servicio.pk, 'tipo': OrdenTrabajo.Tipo.PREVENTIVA,
+                'fecha_programada': '2026-10-20', 'observaciones': ''}
+
+    def test_rechaza_servicio_de_otro_tipo_de_equipo(self):
+        form = self.Form(self._datos(self.servicio_gen))
+        self.assertFalse(form.is_valid())
+        self.assertIn('servicio_plan', form.errors)
+
+    def test_acepta_servicio_del_mismo_tipo(self):
+        self.assertTrue(self.Form(self._datos(self.servicio_grua)).is_valid())
+
+
+class ProximosServiciosEnBloqueTest(TestCase):
+    """La versión en bloque da el mismo resultado que la individual y usa pocas consultas."""
+
+    def setUp(self):
+        self.tipo = TipoEquipo.objects.create(nombre='Generador', unidad_medida=TipoEquipo.UnidadMedida.HORAS)
+        plan = PlanMantencion.objects.create(tipo_equipo=self.tipo, nombre='Plan')
+        self.s250 = ServicioPlan.objects.create(plan=plan, nombre='250h', intervalo_horas=250)
+        self.s500 = ServicioPlan.objects.create(plan=plan, nombre='500h', intervalo_horas=500)
+        self.equipos = []
+        for i in range(6):
+            e = Equipo.objects.create(tipo_equipo=self.tipo, codigo=f'E{i}')
+            e.actualizarHorometro(Decimal(100 * (i + 1)))
+            OrdenTrabajo.objects.create(
+                equipo=e, servicio_plan=self.s250 if i % 2 else self.s500, tipo=OrdenTrabajo.Tipo.PREVENTIVA,
+                estado=OrdenTrabajo.Estado.CERRADA, numero_ot=f'OT-{i}', horometro_cierre=Decimal(50 * i))
+            self.equipos.append(e)
+        self.sin_plan = Equipo.objects.create(
+            tipo_equipo=TipoEquipo.objects.create(nombre='Sin plan', unidad_medida=TipoEquipo.UnidadMedida.HORAS), codigo='X')
+
+    def test_resultado_igual_al_individual(self):
+        calc = CalculadoraProximoServicio(umbral_alerta_horas=100)
+        todos = self.equipos + [self.sin_plan]
+        bloque = calc.proximosServicios(todos)
+        for e in todos:
+            proximo = calc.calcularProximoServicio(e)
+            horas = calc.horasRestantes(e, proximo) if proximo else None
+            self.assertEqual(bloque[e.id], (proximo, horas), e.codigo)
+
+    def test_cantidad_de_consultas_no_depende_de_la_flota(self):
+        calc = CalculadoraProximoServicio(umbral_alerta_horas=100)
+        with self.assertNumQueries(2):
+            calc.proximosServicios(self.equipos)

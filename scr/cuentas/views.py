@@ -54,9 +54,9 @@ def dashboard(request):
     filas = []
     vencidos = 0
     por_vencer = 0
+    pronosticos = calculadora.proximosServicios(equipos)  # en bloque: evita una consulta por equipo y servicio
     for equipo in equipos:
-        proximo = calculadora.calcularProximoServicio(equipo)
-        horas_restantes = calculadora.horasRestantes(equipo, proximo) if proximo else None
+        proximo, horas_restantes = pronosticos[equipo.id]
         if proximo is None:
             estado_alerta = 'SIN_PLAN'
         elif horas_restantes < 0:

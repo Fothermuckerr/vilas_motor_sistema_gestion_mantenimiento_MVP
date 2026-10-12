@@ -36,3 +36,17 @@ python manage.py startapp arriendos
 python manage.py startapp auditoria
 
 ```
+
+## Configuración de seguridad (variables de entorno)
+
+- `DEBUG`: usar `False` en producción. Con `DEBUG=False` se activan HTTPS obligatorio, cookies seguras y HSTS.
+- `ALLOWED_HOSTS`: lista separada por comas con los dominios permitidos (obligatorio con `DEBUG=False`).
+- `SECRET_KEY`: valor largo y aleatorio, distinto en cada entorno.
+- Contraseñas: largo mínimo de 12 caracteres.
+- Auditoría: los INSERT, UPDATE y DELETE de las entidades de negocio quedan registrados automáticamente con usuario, IP y valores anterior y nuevo.
+
+## Herramientas de verificación
+
+- `python manage.py test`: pruebas automatizadas.
+- `python herramientas/medir_rendimiento.py 150 5`: mide tiempo y consultas SQL con una flota ampliada.
+- `python herramientas/recorrido_navegador.py`: recorre los casos manuales M1 a M8 en un navegador real (requiere Playwright y el servidor en 127.0.0.1:8765 con los datos de demostración).

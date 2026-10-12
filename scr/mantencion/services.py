@@ -1,5 +1,9 @@
 from decimal import Decimal
 
+from django.utils import timezone
+
+from horometros.models import LecturaHorometro
+
 from .models import OrdenTrabajo, ServicioPlan
 
 
@@ -56,3 +60,59 @@ class CalculadoraProximoServicio:
         if proximo is None:
             return False
         return self.horasRestantes(equipo, proximo) <= self.umbral_alerta_horas
+
+    def proximosServicios(self, equipos):
+        """Versión en bloque de calcularProximoServicio/horasRestantes para varios equipos.
+
+        Usa 2 consultas en total (servicios y último cierre por equipo y servicio) en vez de
+        una por cada equipo y servicio. Devuelve {id_equipo: (servicio | None, horas_restantes | None)}.
+        """
+        from django.db.models import Max
+
+        equipos = list(equipos)
+        servicios_por_tipo = {}
+        for servicio in ServicioPlan.objects.filter(
+            plan__tipo_equipo__in={e.tipo_equipo_id for e in equipos}, intervalo_horas__isnull=False
+        ).select_related('plan'):
+            servicios_por_tipo.setdefault(servicio.plan.tipo_equipo_id, []).append(servicio)
+
+        cierres = {
+            (fila['equipo_id'], fila['servicio_plan_id']): fila['ultimo']
+            for fila in OrdenTrabajo.objects.filter(
+                equipo__in=equipos, estado=OrdenTrabajo.Estado.CERRADA, horometro_cierre__isnull=False
+            ).values('equipo_id', 'servicio_plan_id').annotate(ultimo=Max('horometro_cierre'))
+        }
+
+        resultado = {}
+        for equipo in equipos:
+            mejor, mejor_horas = None, None
+            for servicio in servicios_por_tipo.get(equipo.tipo_equipo_id, []):
+                ultimo = cierres.get((equipo.id, servicio.id), Decimal('0.0'))
+                horas = Decimal(servicio.intervalo_horas) - (equipo.horometro_actual - ultimo)
+                if mejor_horas is None or horas < mejor_horas:
+                    mejor, mejor_horas = servicio, horas
+            resultado[equipo.id] = (mejor, mejor_horas)
+        return resultado
+
+
+def registrarCierreDeOrden(orden, valor, usuario):
+    """Cierra la OT y deja la lectura del técnico en el historial del equipo.
+
+    Cerrar es el momento en que el dato real entra al sistema: la máquina se
+    intervino con ese horómetro, así que la lectura nace validada y con fuente
+    TECNICO, que es de quien viene el dato. El horómetro del equipo se mueve con
+    ella, para que la calculadora del próximo servicio lea el mismo número que
+    quedó en el historial.
+    """
+    lectura = LecturaHorometro.objects.create(
+        equipo=orden.equipo,
+        usuario=usuario,
+        valor=valor,
+        fecha_hora=timezone.now(),
+        fuente=LecturaHorometro.Fuente.TECNICO,
+        validada=True,
+        observacion=f'Cierre {orden.numero_ot}',
+    )
+    orden.cerrar(valor)
+    orden.equipo.actualizarHorometro(valor)
+    return lectura

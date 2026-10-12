@@ -53,7 +53,7 @@
                 </div>
                 {% elif orden.estado == 'EN_CURSO' %}
                 <div class="celda-acciones">
-                    <a class="btn btn-danger" href="{% url 'mantencion:cerrar_orden' orden.id %}">Cerrar</a>
+                    <a class="btn btn-danger" href="{% url 'mantencion:detalle_orden' orden.id %}?cerrar=1">Cerrar</a>
                     <a class="btn btn-secondary" href="{% url 'mantencion:editar_orden' orden.id %}">Editar</a>
                     <button type="button" class="btn btn-danger"
                             data-borrar="{% url 'mantencion:borrar_orden' orden.id %}">Borrar</button>

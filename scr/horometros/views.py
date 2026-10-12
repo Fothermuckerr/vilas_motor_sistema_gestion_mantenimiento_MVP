@@ -19,6 +19,9 @@ from .services import ValidadorDatos, arrendatarioDelEquipo
 SIN_ARRENDATARIO = 'Este equipo no tiene un cliente con arriendo asociado.'
 
 
+LIMITE_LECTURAS = 100
+
+
 def _render_pagina(request, form_lectura=None, solicitud_en_edicion=None,
                    form_solicitud=None, abrir_solicitud=False):
     """Arma la página de horómetros: las dos celdas y sus dos diálogos.
@@ -43,7 +46,8 @@ def _render_pagina(request, form_lectura=None, solicitud_en_edicion=None,
         )
         .order_by('-fecha_solicitud', '-id')
     )
-    lecturas = LecturaHorometro.objects.select_related('equipo').order_by('-fecha_hora')
+    # El historial puede crecer sin límite: se muestran las últimas lecturas, no todas.
+    lecturas = LecturaHorometro.objects.select_related('equipo').order_by('-fecha_hora')[:LIMITE_LECTURAS]
 
     if form_lectura is None:
         form_lectura = LecturaDeSolicitudForm()

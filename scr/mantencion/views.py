@@ -10,6 +10,7 @@ from .forms import (
     ServicioPlanForm,
 )
 from .models import OrdenTrabajo, PlanMantencion, ServicioPlan
+from .services import registrarCierreDeOrden
 
 
 def lista_planes(request):
@@ -170,13 +171,30 @@ def editar_orden(request, pk):
     return render(request, 'mantencion/editar_orden.html', {'form': form, 'orden': orden})
 
 
+def _render_detalle(request, orden, form_cierre=None, abrir_cierre=False):
+    """Arma la ficha de la OT con su diálogo de cierre listo para usar.
+
+    El cierre vive en un diálogo de la ficha, así que el formulario se arma acá.
+    El diálogo se abre solo cuando el POST no pasó la validación, para que el error
+    quede a la vista; en el caso normal lo abre el navegador, o el enlace de la
+    lista que llega con ?cerrar=1.
+    """
+    if form_cierre is None:
+        form_cierre = CerrarOrdenForm(equipo=orden.equipo)
+    return render(request, 'mantencion/detalle_orden.html', {
+        'orden': orden,
+        'form_cierre': form_cierre,
+        'abrir_cierre': abrir_cierre or bool(request.GET.get('cerrar')),
+    })
+
+
 def detalle_orden(request, pk):
     """Ficha de una OT con sus insumos usados."""
     orden = get_object_or_404(
         OrdenTrabajo.objects.select_related('equipo', 'servicio_plan').prefetch_related('insumos__insumo'),
         pk=pk,
     )
-    return render(request, 'mantencion/detalle_orden.html', {'orden': orden})
+    return _render_detalle(request, orden)
 
 
 def registrar_insumo(request, pk):
@@ -209,19 +227,23 @@ def cerrar_orden(request, pk):
     """Cierra una OT en curso fijando el horómetro de cierre.
 
     Solo se cierra lo que ya arrancó: una PROGRAMADA primero se pasa a EN_CURSO.
+    No tiene página propia: el formulario vive en un diálogo de la ficha y postea
+    acá. El cierre deja la lectura del técnico en el historial del equipo y mueve su
+    horómetro, así que el formulario recibe el equipo para no aceptar un valor menor
+    al que la máquina ya tenía.
     """
     orden = get_object_or_404(OrdenTrabajo, pk=pk)
     if orden.estado != OrdenTrabajo.Estado.EN_CURSO:
         return redirect('mantencion:detalle_orden', pk=orden.pk)
 
     if request.method == 'POST':
-        form = CerrarOrdenForm(request.POST)
+        form = CerrarOrdenForm(request.POST, equipo=orden.equipo)
         if form.is_valid():
-            orden.cerrar(form.cleaned_data['horometro_cierre'])
+            registrarCierreDeOrden(orden, form.cleaned_data['horometro_cierre'], request.user)
             return redirect('mantencion:detalle_orden', pk=orden.pk)
-    else:
-        form = CerrarOrdenForm()
-    return render(request, 'mantencion/cerrar_orden.html', {'form': form, 'orden': orden})
+        return _render_detalle(request, orden, form_cierre=form, abrir_cierre=True)
+
+    return redirect('mantencion:detalle_orden', pk=orden.pk)
 
 
 @require_POST

@@ -29,7 +29,7 @@ class UsuarioManager(BaseUserManager):
     def create_user(self, email, password=None, **campos_extra):
         for campo in ('rol', 'is_staff', 'is_superuser'):
             if campo in campos_extra:
-                raise ValueError(f"create_user() no acepta inserción de campos.")
+                raise ValueError("create_user() no acepta inserción de campos.")
         campos_extra['is_staff'] = True
         campos_extra['is_superuser'] = False
         rol = self._obtener_rol(self.ROL_PLANIFICADOR) #Ahora solo es planificador por "default" porque no existen más roles en el sistema
@@ -38,7 +38,7 @@ class UsuarioManager(BaseUserManager):
     def create_superuser(self, email, password=None, **campos_extra):
         for campo in ('rol', 'is_staff', 'is_superuser'):
             if campo in campos_extra:
-                raise ValueError(f"create_superuser() no acepta inserción de campos.")
+                raise ValueError("create_superuser() no acepta inserción de campos.")
         campos_extra['is_staff'] = True
         campos_extra['is_superuser'] = True
         campos_extra['is_active'] = True

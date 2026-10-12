@@ -261,7 +261,7 @@ SOLICITUDES = [
     {'equipo': 'RET-118', 'cliente': '80.444.555-6', 'momento': (2026, 10, 1, 8, 45),
      'estado': SolicitudHorometro.Estado.PENDIENTE, 'lectura': None},
     {'equipo': 'CAM-301', 'cliente': '78.222.333-4', 'momento': (2026, 10, 5, 15, 15),
-     'estado': SolicitudHorometro.Estado.VENCIDA, 'lectura': None},
+     'estado': SolicitudHorometro.Estado.PENDIENTE, 'lectura': None},
 ]
 
 # --- Arriendos ----------------------------------------------------------------

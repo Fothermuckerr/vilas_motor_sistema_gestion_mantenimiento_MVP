@@ -474,3 +474,25 @@ class BandejaHorometrosTest(TestCase):
         )
         self.assertIsNone(response.json()['cliente'])
         self.assertIn('no tiene un cliente con arriendo asociado', response.json()['mensaje'])
+
+
+class LimiteDeLecturasTest(TestCase):
+    """El historial de la bandeja muestra solo las últimas lecturas, para no crecer sin límite."""
+
+    def test_pagina_muestra_a_lo_mas_100_lecturas(self):
+        from datetime import timedelta
+        from django.urls import reverse
+        from django.utils import timezone
+        from cuentas.models import Rol, Usuario
+        from flota.models import Equipo, TipoEquipo
+        from horometros.models import LecturaHorometro
+        Rol.objects.get_or_create(nombre='planificador', defaults={'descripcion': 'Planificador'})
+        u = Usuario.objects.create_user(email='p@v.cl', password='test1234', nombre='P')
+        e = Equipo.objects.create(tipo_equipo=TipoEquipo.objects.create(nombre='G', unidad_medida='HORAS'), codigo='Z1')
+        ahora = timezone.now()
+        LecturaHorometro.objects.bulk_create([
+            LecturaHorometro(equipo=e, usuario=u, valor=i, fecha_hora=ahora - timedelta(days=150 - i), fuente='CLIENTE')
+            for i in range(1, 131)])
+        self.client.force_login(u)
+        r = self.client.get(reverse('horometros:index'))
+        self.assertEqual(len(r.context['lecturas']), 100)

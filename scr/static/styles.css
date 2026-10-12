@@ -803,3 +803,83 @@ td a:hover {
     font-size: 13px;
     border-top: 3px solid var(--acento-borde);
 }
+
+/* ===== Adaptabilidad (responsive) ===== */
+@media (max-width: 900px) {
+    .header-inner {
+        flex-wrap: wrap;
+        height: auto;
+        padding-top: 10px;
+        padding-bottom: 10px;
+        row-gap: 8px;
+    }
+
+    .header-right {
+        display: contents;
+    }
+
+    .main-nav {
+        order: 3;
+        flex: 1 0 100%;
+        gap: 18px;
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 4px;
+    }
+
+    .brand-name {
+        font-size: 22px;
+    }
+
+    .brand {
+        margin-right: auto;
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 0 14px;
+    }
+
+    /* Las tablas anchas se desplazan horizontalmente en vez de desbordar la página */
+    table {
+        display: block;
+        max-width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    th,
+    td {
+        padding: 10px 12px;
+        white-space: nowrap;
+    }
+
+    .stat-grid {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 12px;
+    }
+
+    .form input,
+    .form select,
+    .form textarea {
+        max-width: 100%;
+        font-size: 16px; /* evita el zoom automático en iOS */
+    }
+
+    .btn {
+        min-height: 44px; /* área táctil mínima */
+    }
+}
+
+@media (max-width: 480px) {
+    .brand-name {
+        font-size: 19px;
+        letter-spacing: 1px;
+    }
+
+    .site-footer span {
+        font-size: 12px;
+    }
+}
