@@ -417,3 +417,79 @@ class ProximosServiciosEnBloqueTest(TestCase):
         calc = CalculadoraProximoServicio(umbral_alerta_horas=100)
         with self.assertNumQueries(2):
             calc.proximosServicios(self.equipos)
+
+
+class InicioDeOrdenPorEstadoTest(TestCase):
+    """Una OT solo arranca si el equipo puede entrar al taller, y lo manda ahí."""
+
+    def setUp(self):
+        self.rol, _ = Rol.objects.get_or_create(nombre='planificador', defaults={'descripcion': 'Planificador'})
+        self.usuario = Usuario.objects.create_user(email='plan@vilas.cl', password='test1234', nombre='Planificador')
+        self.tipo = TipoEquipo.objects.create(nombre='Generador', unidad_medida=TipoEquipo.UnidadMedida.HORAS)
+        self.client.force_login(self.usuario)
+
+    def _orden(self, estado):
+        equipo = Equipo.objects.create(tipo_equipo=self.tipo, codigo=f'EQ-{estado}', estado=estado)
+        return OrdenTrabajo.objects.create(
+            equipo=equipo, tipo=OrdenTrabajo.Tipo.PREVENTIVA, numero_ot=f'OT-{estado}'
+        )
+
+    def test_iniciar_manda_el_equipo_a_mantencion(self):
+        orden = self._orden(Equipo.Estado.DISPONIBLE)
+        self.client.post(reverse('mantencion:iniciar_orden', args=[orden.id]))
+        orden.refresh_from_db()
+        orden.equipo.refresh_from_db()
+        self.assertEqual(orden.estado, OrdenTrabajo.Estado.EN_CURSO)
+        self.assertEqual(orden.equipo.estado, Equipo.Estado.EN_MANTENIMIENTO)
+        self.assertEqual(orden.equipo.estado_previo, Equipo.Estado.DISPONIBLE)
+
+    def test_iniciar_desde_interno_recuerda_el_origen(self):
+        orden = self._orden(Equipo.Estado.INTERNO)
+        self.client.post(reverse('mantencion:iniciar_orden', args=[orden.id]))
+        orden.equipo.refresh_from_db()
+        self.assertEqual(orden.equipo.estado, Equipo.Estado.EN_MANTENIMIENTO)
+        self.assertEqual(orden.equipo.estado_previo, Equipo.Estado.INTERNO)
+
+    def test_no_inicia_si_el_equipo_esta_en_faena(self):
+        orden = self._orden(Equipo.Estado.EN_FAENA)
+        response = self.client.post(reverse('mantencion:iniciar_orden', args=[orden.id]), follow=True)
+        orden.refresh_from_db()
+        self.assertEqual(orden.estado, OrdenTrabajo.Estado.PROGRAMADA)
+        self.assertContains(response, 'sigue en faena')
+
+    def test_no_inicia_si_el_equipo_ya_esta_en_mantencion(self):
+        orden = self._orden(Equipo.Estado.EN_MANTENIMIENTO)
+        response = self.client.post(reverse('mantencion:iniciar_orden', args=[orden.id]), follow=True)
+        orden.refresh_from_db()
+        self.assertEqual(orden.estado, OrdenTrabajo.Estado.PROGRAMADA)
+        self.assertContains(response, 'ya está en mantenimiento')
+
+
+class CierreDevuelveElEquipoTest(TestCase):
+    """Cerrar la OT devuelve el equipo al estado del que vino."""
+
+    def setUp(self):
+        self.rol, _ = Rol.objects.get_or_create(nombre='planificador', defaults={'descripcion': 'Planificador'})
+        self.usuario = Usuario.objects.create_user(email='plan@vilas.cl', password='test1234', nombre='Planificador')
+        self.tipo = TipoEquipo.objects.create(nombre='Generador', unidad_medida=TipoEquipo.UnidadMedida.HORAS)
+        self.client.force_login(self.usuario)
+
+    def _orden_en_curso(self, estado):
+        equipo = Equipo.objects.create(tipo_equipo=self.tipo, codigo=f'EQ-{estado}', estado=estado)
+        orden = OrdenTrabajo.objects.create(
+            equipo=equipo, tipo=OrdenTrabajo.Tipo.PREVENTIVA, numero_ot=f'OT-{estado}'
+        )
+        self.client.post(reverse('mantencion:iniciar_orden', args=[orden.id]))
+        return orden
+
+    def test_cerrar_devuelve_el_equipo_a_interno(self):
+        orden = self._orden_en_curso(Equipo.Estado.INTERNO)
+        self.client.post(reverse('mantencion:cerrar_orden', args=[orden.id]), {'horometro_cierre': '100.0'})
+        orden.equipo.refresh_from_db()
+        self.assertEqual(orden.equipo.estado, Equipo.Estado.INTERNO)
+
+    def test_cerrar_devuelve_el_equipo_a_disponible(self):
+        orden = self._orden_en_curso(Equipo.Estado.DISPONIBLE)
+        self.client.post(reverse('mantencion:cerrar_orden', args=[orden.id]), {'horometro_cierre': '100.0'})
+        orden.equipo.refresh_from_db()
+        self.assertEqual(orden.equipo.estado, Equipo.Estado.DISPONIBLE)

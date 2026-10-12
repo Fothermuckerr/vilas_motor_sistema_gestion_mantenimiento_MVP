@@ -12,6 +12,7 @@ class LecturaHorometro(models.Model):
         TECNICO = 'TECNICO', 'Técnico'
         PLANIFICACION = 'PLANIFICACION', 'Planificación'
         TELEMETRIA = 'TELEMETRIA', 'Telemetría'
+        INTERNO = 'INTERNO', 'Interno'
 
     id = models.BigAutoField(primary_key=True, db_column='id_lectura')
     equipo = models.ForeignKey('flota.Equipo', on_delete=models.PROTECT, db_column='id_equipo', related_name='lecturas')
@@ -31,13 +32,14 @@ class LecturaHorometro(models.Model):
 
 # A quién se le puede pedir el horómetro de un equipo. La planificación no está:
 # el dato se le pide a alguien (el cliente que tiene la máquina, el técnico que la
-# revisa o la telemetría del equipo), no a un área interna. Los valores coinciden
-# con LecturaHorometro.Fuente porque la lectura que cierra la solicitud hereda
-# esta fuente.
+# revisa, quien la usa de forma interna o la telemetría del equipo), no a un área
+# interna. Los valores coinciden con LecturaHorometro.Fuente porque la lectura que
+# cierra la solicitud hereda esta fuente.
 FUENTES_DE_SOLICITUD = [
     ('CLIENTE', 'Cliente'),
     ('TECNICO', 'Técnico'),
     ('TELEMETRIA', 'Telemetría'),
+    ('INTERNO', 'Interno'),
 ]
 
 

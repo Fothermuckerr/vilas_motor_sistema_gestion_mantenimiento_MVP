@@ -125,3 +125,30 @@ class UsuarioManagerTest(TestCase):
         Rol.objects.all().delete()
         with self.assertRaises(ValueError):
             Usuario.objects.create_user(email='e@v.cl', password='x', nombre='E')
+
+
+class SinDevolverPorEstadoTest(TestCase):
+    """Solo un equipo en faena con el arriendo cerrado cuenta como sin devolver."""
+
+    def setUp(self):
+        self.rol, _ = Rol.objects.get_or_create(nombre='planificador', defaults={'descripcion': 'Planificador'})
+        self.usuario = Usuario.objects.create_user(email='plan@vilas.cl', password='test1234', nombre='Planificador')
+        self.cliente = Cliente.objects.create(rut='11111111-1', razon_social='Cliente X')
+        self.tipo = TipoEquipo.objects.create(nombre='Generador', unidad_medida=TipoEquipo.UnidadMedida.HORAS)
+        self.client.force_login(self.usuario)
+
+    def _con_arriendo_cerrado(self, estado):
+        equipo = Equipo.objects.create(tipo_equipo=self.tipo, codigo=f'EQ-{estado}', estado=estado)
+        arriendo = Arriendo.objects.create(equipo=equipo, cliente=self.cliente, fecha_inicio=date(2026, 1, 5))
+        arriendo.cerrar(date(2026, 6, 30))
+        return equipo
+
+    def test_un_equipo_interno_no_cuenta_como_sin_devolver(self):
+        self._con_arriendo_cerrado(Equipo.Estado.INTERNO)
+        contexto = self.client.get(reverse('cuentas:dashboard')).context
+        self.assertEqual(contexto['equipos_sin_devolver'], 0)
+
+    def test_un_equipo_en_faena_si_cuenta(self):
+        self._con_arriendo_cerrado(Equipo.Estado.EN_FAENA)
+        contexto = self.client.get(reverse('cuentas:dashboard')).context
+        self.assertEqual(contexto['equipos_sin_devolver'], 1)

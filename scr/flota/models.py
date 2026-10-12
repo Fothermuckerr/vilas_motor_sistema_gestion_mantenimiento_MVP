@@ -43,6 +43,9 @@ class Equipo(models.Model):
     modelo = models.CharField(max_length=50, null=True, blank=True)
     numero_serie = models.CharField(max_length=50, unique=True, null=True, blank=True)
     estado = models.CharField(max_length=20, choices=Estado.choices, default=Estado.DISPONIBLE)
+    # De dónde vino el equipo al entrar a mantenimiento. Al cerrar la OT vuelve
+    # ahí: un equipo interno sigue siendo interno después de pasar por el taller.
+    estado_previo = models.CharField(max_length=20, choices=Estado.choices, null=True, blank=True)
     horometro_actual = models.DecimalField(max_digits=10, decimal_places=1, default=Decimal('0.0'))
     telemetria_id = models.CharField(max_length=40, null=True, blank=True)
 
@@ -53,9 +56,24 @@ class Equipo(models.Model):
         return self.codigo
 
     def cambiarEstado(self, estado):
-        """Transiciona el estado del equipo y persiste el cambio."""
-        self.estado = self.Estado(estado)
-        self.save(update_fields=['estado'])
+        """Transiciona el estado del equipo y persiste el cambio.
+
+        Entrar a mantenimiento es el único cambio que guarda de dónde se venía, así
+        que es también el único que después sabe a dónde volver.
+        """
+        nuevo = self.Estado(estado)
+        if nuevo == self.Estado.EN_MANTENIMIENTO:
+            # Ya en el taller no hay origen que recordar: se conserva el que había.
+            if self.estado != self.Estado.EN_MANTENIMIENTO:
+                self.estado_previo = self.estado
+        else:
+            self.estado_previo = None
+        self.estado = nuevo
+        self.save(update_fields=['estado', 'estado_previo'])
+
+    def volverDeMantenimiento(self):
+        """Devuelve el equipo al estado del que vino, o a disponible si no consta."""
+        self.cambiarEstado(self.estado_previo or self.Estado.DISPONIBLE)
 
     def actualizarHorometro(self, valor):
         """Actualiza el horómetro actual del equipo."""

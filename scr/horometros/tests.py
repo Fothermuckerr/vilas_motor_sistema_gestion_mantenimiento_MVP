@@ -496,3 +496,20 @@ class LimiteDeLecturasTest(TestCase):
         self.client.force_login(u)
         r = self.client.get(reverse('horometros:index'))
         self.assertEqual(len(r.context['lecturas']), 100)
+
+
+class FuenteInternoTest(TestCase):
+    """Un equipo en uso interno lo reporta quien lo tiene, no un cliente."""
+
+    def setUp(self):
+        self.tipo = TipoEquipo.objects.create(nombre='Generador', unidad_medida=TipoEquipo.UnidadMedida.HORAS)
+        self.interno = Equipo.objects.create(
+            tipo_equipo=self.tipo, codigo='EQ-INT', estado=Equipo.Estado.INTERNO
+        )
+
+    def test_la_fuente_interno_ofrece_solo_equipos_internos(self):
+        form = SolicitudHorometroForm(initial={'fuente': 'INTERNO'})
+        self.assertEqual(list(form.fields['equipo'].queryset), [self.interno])
+
+    def test_la_ficha_sugiere_interno(self):
+        self.assertEqual(fuenteSugerida(self.interno), 'INTERNO')

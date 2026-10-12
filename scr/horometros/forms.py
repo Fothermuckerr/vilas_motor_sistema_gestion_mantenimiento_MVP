@@ -5,13 +5,14 @@ from flota.models import Equipo
 from .models import LecturaHorometro, SolicitudHorometro
 
 # Estados en los que puede estar el equipo según a quién se le pida el horómetro.
-# Al técnico se le pide con la máquina en bodega (está presente), al cliente con
-# la máquina en faena (la tiene él), y la telemetría no depende de dónde esté.
-# Una lista vacía significa "cualquier estado".
+# Al técnico se le pide con la máquina en bodega (está presente), al cliente con la
+# máquina en faena (la tiene él), al interno con la máquina en uso interno, y la
+# telemetría no depende de dónde esté. Una lista vacía significa "cualquier estado".
 ESTADOS_POR_FUENTE = {
     'CLIENTE': [Equipo.Estado.EN_FAENA],
     'TECNICO': [Equipo.Estado.DISPONIBLE],
     'TELEMETRIA': [],
+    'INTERNO': [Equipo.Estado.INTERNO],
 }
 
 
@@ -80,6 +81,8 @@ class SolicitudHorometroForm(forms.ModelForm):
             return 'Solo equipos en faena: el horómetro se le pide a quien tiene la máquina.'
         if fuente == LecturaHorometro.Fuente.TECNICO:
             return 'Solo equipos disponibles: el técnico revisa la máquina en bodega.'
+        if fuente == LecturaHorometro.Fuente.INTERNO:
+            return 'Solo equipos en uso interno: el dato lo reporta quien los tiene.'
         return 'La telemetría no depende del estado del equipo.'
 
     def sinEquipos(self):

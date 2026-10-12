@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Equipos — Vilas Motor{% endblock %}
 
@@ -20,6 +21,7 @@
             <th>Modelo</th>
             <th>Estado</th>
             <th>Horómetro</th>
+            <th>Acción</th>
         </tr>
     </thead>
     <tbody>
@@ -42,12 +44,42 @@
                 {% endif %}
             </td>
             <td>{{ equipo.horometro_actual }}</td>
+            <td>
+                <button type="button" class="btn btn-secondary"
+                        data-cambiar-estado="{% url 'flota:cambiar_estado' equipo.id %}"
+                        data-equipo="{{ equipo.codigo }}"
+                        data-estado="{{ equipo.estado }}">Cambiar estado</button>
+            </td>
         </tr>
         {% empty %}
         <tr>
-            <td colspan="7">No hay equipos registrados.</td>
+            <td colspan="8">No hay equipos registrados.</td>
         </tr>
         {% endfor %}
     </tbody>
 </table>
+
+<dialog id="dialogo-estado" class="dialogo-confirmacion">
+    <p class="dialogo-contexto">
+        Cambiar el estado del equipo <span id="estado-equipo"></span>.
+    </p>
+    <form method="post" class="form" id="formulario-estado">
+        {% csrf_token %}
+        <p>
+            <label for="select-estado">Nuevo estado:</label>
+            <select name="estado" id="select-estado">
+                {% for valor, etiqueta in estados %}
+                <option value="{{ valor }}">{{ etiqueta }}</option>
+                {% endfor %}
+            </select>
+        </p>
+        <div class="dialogo-acciones">
+            <button type="button" class="btn btn-danger" data-cerrar-dialogo>No</button>
+            <button type="submit" class="btn btn-si">Sí, cambiar</button>
+        </div>
+    </form>
+</dialog>
+
+<script src="{% static 'js/borrado.js' %}"></script>
+<script src="{% static 'js/estado-equipo.js' %}"></script>
 {% endblock %}

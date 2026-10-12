@@ -138,3 +138,91 @@ class FlotaViewsTest(TestCase):
         })
         self.assertRedirects(response, reverse('flota:equipos'))
         self.assertTrue(Equipo.objects.filter(codigo='EQ-002').exists())
+
+
+class EstadoDeMantencionTest(TestCase):
+    """Entrar al taller recuerda de dónde se venía; salir devuelve ahí."""
+
+    def setUp(self):
+        self.tipo = TipoEquipo.objects.create(nombre='Generador', unidad_medida=TipoEquipo.UnidadMedida.HORAS)
+
+    def _equipo(self, estado):
+        return Equipo.objects.create(tipo_equipo=self.tipo, codigo=f'EQ-{estado}', estado=estado)
+
+    def test_entrar_recuerda_el_origen(self):
+        equipo = self._equipo(Equipo.Estado.INTERNO)
+        equipo.cambiarEstado(Equipo.Estado.EN_MANTENIMIENTO)
+        equipo.refresh_from_db()
+        self.assertEqual(equipo.estado_previo, Equipo.Estado.INTERNO)
+
+    def test_volver_devuelve_el_origen(self):
+        equipo = self._equipo(Equipo.Estado.INTERNO)
+        equipo.cambiarEstado(Equipo.Estado.EN_MANTENIMIENTO)
+        equipo.volverDeMantenimiento()
+        equipo.refresh_from_db()
+        self.assertEqual(equipo.estado, Equipo.Estado.INTERNO)
+        self.assertIsNone(equipo.estado_previo)
+
+    def test_volver_sin_origen_deja_disponible(self):
+        equipo = self._equipo(Equipo.Estado.DISPONIBLE)
+        equipo.volverDeMantenimiento()
+        equipo.refresh_from_db()
+        self.assertEqual(equipo.estado, Equipo.Estado.DISPONIBLE)
+
+    def test_cambiar_a_otro_estado_limpia_el_origen(self):
+        equipo = self._equipo(Equipo.Estado.INTERNO)
+        equipo.cambiarEstado(Equipo.Estado.EN_MANTENIMIENTO)
+        equipo.cambiarEstado(Equipo.Estado.DISPONIBLE)
+        equipo.refresh_from_db()
+        self.assertIsNone(equipo.estado_previo)
+
+
+class CapacidadesTest(TestCase):
+    """La tabla de capacidades es la única que decide qué se puede hacer con cada estado."""
+
+    def setUp(self):
+        self.tipo = TipoEquipo.objects.create(nombre='Generador', unidad_medida=TipoEquipo.UnidadMedida.HORAS)
+
+    def test_la_tabla_cubre_todos_los_estados(self):
+        from flota.services import CAPACIDADES
+        self.assertEqual({estado.value for estado in CAPACIDADES}, set(Equipo.Estado.values))
+
+    def test_interno_entra_a_mantencion_pero_no_se_arrienda(self):
+        from flota.services import puedeArrendarse, puedeEntrarAMantencion
+        equipo = Equipo.objects.create(tipo_equipo=self.tipo, codigo='EQ-INT', estado=Equipo.Estado.INTERNO)
+        self.assertTrue(puedeEntrarAMantencion(equipo))
+        self.assertFalse(puedeArrendarse(equipo))
+
+    def test_en_faena_no_entra_a_mantencion(self):
+        from flota.services import puedeEntrarAMantencion
+        equipo = Equipo.objects.create(tipo_equipo=self.tipo, codigo='EQ-FAE', estado=Equipo.Estado.EN_FAENA)
+        self.assertFalse(puedeEntrarAMantencion(equipo))
+
+
+class CambiarEstadoViewTest(TestCase):
+    """El botón del inventario cambia el estado del equipo."""
+
+    def setUp(self):
+        self.rol, _ = Rol.objects.get_or_create(nombre='planificador', defaults={'descripcion': 'Planificador'})
+        self.usuario = Usuario.objects.create_user(email='plan@vilas.cl', password='test1234', nombre='Planificador')
+        self.tipo = TipoEquipo.objects.create(nombre='Generador', unidad_medida=TipoEquipo.UnidadMedida.HORAS)
+        self.equipo = Equipo.objects.create(tipo_equipo=self.tipo, codigo='EQ-001')
+        self.client.force_login(self.usuario)
+
+    def test_cambia_el_estado(self):
+        response = self.client.post(
+            reverse('flota:cambiar_estado', args=[self.equipo.id]),
+            {'estado': Equipo.Estado.INTERNO},
+        )
+        self.assertRedirects(response, reverse('flota:equipos'))
+        self.equipo.refresh_from_db()
+        self.assertEqual(self.equipo.estado, Equipo.Estado.INTERNO)
+
+    def test_un_estado_invalido_no_rompe(self):
+        self.client.post(reverse('flota:cambiar_estado', args=[self.equipo.id]), {'estado': 'ROTO'})
+        self.equipo.refresh_from_db()
+        self.assertEqual(self.equipo.estado, Equipo.Estado.DISPONIBLE)
+
+    def test_el_inventario_ofrece_el_boton(self):
+        response = self.client.get(reverse('flota:equipos'))
+        self.assertContains(response, reverse('flota:cambiar_estado', args=[self.equipo.id]))

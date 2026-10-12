@@ -4,6 +4,7 @@ from arriendos.models import Arriendo
 from cuentas.forms import ClienteForm
 from cuentas.models import Cliente
 from flota.models import Equipo
+from flota.services import ESTADOS_SIN_DEVOLVER
 from horometros.models import SolicitudHorometro
 from mantencion.models import OrdenTrabajo
 from mantencion.services import CalculadoraProximoServicio
@@ -75,10 +76,11 @@ def dashboard(request):
         })
 
     # Equipos que cerraron su arriendo pero siguen sin volver a bodega: su último
-    # contrato terminó y el estado todavía no es DISPONIBLE.
+    # contrato terminó y la máquina sigue en faena. Un equipo interno o en taller no
+    # cuenta: no está pendiente el regreso de un arriendo.
     equipos_sin_devolver = 0
-    no_disponibles = Equipo.objects.exclude(estado=Equipo.Estado.DISPONIBLE).prefetch_related('arriendos')
-    for equipo in no_disponibles:
+    en_faena = Equipo.objects.filter(estado__in=ESTADOS_SIN_DEVOLVER).prefetch_related('arriendos')
+    for equipo in en_faena:
         ultimo = max(equipo.arriendos.all(), key=lambda a: (a.fecha_inicio, a.id), default=None)
         if ultimo is not None and ultimo.fecha_termino is not None:
             equipos_sin_devolver += 1

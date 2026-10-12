@@ -883,3 +883,39 @@ td a:hover {
         font-size: 12px;
     }
 }
+
+/* ===== Toasts ===== */
+/* Avisos que viajan con la página y se van solos. El servidor los escribe, así que
+   sobreviven al redirect del POST que no pasó. */
+.toast-contenedor {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 1000;
+    max-width: min(420px, calc(100vw - 40px));
+}
+
+.toast {
+    padding: 14px 18px;
+    border-radius: 10px;
+    border-left: 4px solid var(--acento-borde);
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: var(--sombra-hover);
+    font-size: 14px;
+    line-height: 1.4;
+    opacity: 1;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.toast-error {
+    border-left-color: #b30000;
+}
+
+.toast-saliendo {
+    opacity: 0;
+    transform: translateY(8px);
+}

@@ -1,6 +1,10 @@
+from django.contrib import messages
 from django.db.models import Count
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
+
+from flota.models import Equipo
+from flota.services import mensajeDeBloqueo, puedeEntrarAMantencion
 
 from .forms import (
     CerrarOrdenForm,
@@ -216,10 +220,21 @@ def registrar_insumo(request, pk):
 
 @require_POST
 def iniciar_orden(request, pk):
-    """Pasa una OT de PROGRAMADA a EN_CURSO: el trabajo arranca."""
-    orden = get_object_or_404(OrdenTrabajo, pk=pk)
+    """Pasa una OT de PROGRAMADA a EN_CURSO y manda el equipo al taller.
+
+    Iniciar no es solo cambiar el estado de la orden: la máquina entra a
+    mantenimiento y de ahí no sale hasta que la OT se cierre. Solo puede empezar un
+    equipo en bodega o en uso interno; uno en faena está con el cliente, y uno ya
+    en mantenimiento tiene su OT en curso. Cuando no se puede, el aviso sale como
+    toast en la lista.
+    """
+    orden = get_object_or_404(OrdenTrabajo.objects.select_related('equipo'), pk=pk)
     if orden.estado == OrdenTrabajo.Estado.PROGRAMADA:
-        orden.iniciar()
+        if puedeEntrarAMantencion(orden.equipo):
+            orden.iniciar()
+            orden.equipo.cambiarEstado(Equipo.Estado.EN_MANTENIMIENTO)
+        else:
+            messages.error(request, mensajeDeBloqueo(orden.equipo))
     return redirect('mantencion:ordenes_trabajo')
 
 
@@ -228,11 +243,11 @@ def cerrar_orden(request, pk):
 
     Solo se cierra lo que ya arrancó: una PROGRAMADA primero se pasa a EN_CURSO.
     No tiene página propia: el formulario vive en un diálogo de la ficha y postea
-    acá. El cierre deja la lectura del técnico en el historial del equipo y mueve su
-    horómetro, así que el formulario recibe el equipo para no aceptar un valor menor
-    al que la máquina ya tenía.
+    acá. El cierre deja la lectura del técnico en el historial del equipo, mueve su
+    horómetro y lo devuelve al estado del que vino: un equipo interno sigue siendo
+    interno después del taller.
     """
-    orden = get_object_or_404(OrdenTrabajo, pk=pk)
+    orden = get_object_or_404(OrdenTrabajo.objects.select_related('equipo'), pk=pk)
     if orden.estado != OrdenTrabajo.Estado.EN_CURSO:
         return redirect('mantencion:detalle_orden', pk=orden.pk)
 
@@ -240,6 +255,7 @@ def cerrar_orden(request, pk):
         form = CerrarOrdenForm(request.POST, equipo=orden.equipo)
         if form.is_valid():
             registrarCierreDeOrden(orden, form.cleaned_data['horometro_cierre'], request.user)
+            orden.equipo.volverDeMantenimiento()
             return redirect('mantencion:detalle_orden', pk=orden.pk)
         return _render_detalle(request, orden, form_cierre=form, abrir_cierre=True)
 

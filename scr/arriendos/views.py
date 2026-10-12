@@ -5,6 +5,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from flota.models import Equipo
+from flota.services import ESTADOS_SIN_DEVOLVER
 from vilas_motor.ventanas import VENTANA_POR_DEFECTO, VENTANAS, dias_de_ventana
 
 from .forms import ArriendoForm, CerrarArriendoForm
@@ -29,7 +30,7 @@ def lista_arriendos(request):
         Arriendo.objects.select_related('equipo', 'cliente')
         .filter(
             Q(fecha_termino__isnull=True)
-            | ~Q(equipo__estado=Equipo.Estado.DISPONIBLE)
+            | Q(equipo__estado__in=ESTADOS_SIN_DEVOLVER)
             | Q(fecha_termino__gte=limite)
         )
         .order_by('-fecha_inicio', '-id')
