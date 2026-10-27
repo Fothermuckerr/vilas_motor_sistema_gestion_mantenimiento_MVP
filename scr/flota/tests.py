@@ -139,6 +139,36 @@ class FlotaViewsTest(TestCase):
         self.assertRedirects(response, reverse('flota:equipos'))
         self.assertTrue(Equipo.objects.filter(codigo='EQ-002').exists())
 
+    def test_crear_equipo_con_codigo_automatico(self):
+        Equipo.objects.create(tipo_equipo=self.tipo, codigo='GENERADO-001')
+        response = self.client.post(reverse('flota:crear_equipo'), {
+            'modo_codigo': 'AUTO',
+            'tipo_equipo': self.tipo.id,
+            'patente': '',
+            'marca': '',
+            'modelo': '',
+            'numero_serie': '',
+            'estado': Equipo.Estado.DISPONIBLE,
+            'horometro_actual': '0.0',
+        })
+        self.assertRedirects(response, reverse('flota:equipos'))
+        self.assertTrue(Equipo.objects.filter(codigo='GENERADO-002').exists())
+
+    def test_codigo_manual_es_normalizado(self):
+        response = self.client.post(reverse('flota:crear_equipo'), {
+            'modo_codigo': 'MANUAL',
+            'codigo': ' mi-eq-14 ',
+            'tipo_equipo': self.tipo.id,
+            'patente': '',
+            'marca': '',
+            'modelo': '',
+            'numero_serie': '',
+            'estado': Equipo.Estado.DISPONIBLE,
+            'horometro_actual': '0.0',
+        })
+        self.assertRedirects(response, reverse('flota:equipos'))
+        self.assertTrue(Equipo.objects.filter(codigo='MI-EQ-14').exists())
+
 
 class EstadoDeMantencionTest(TestCase):
     """Entrar al taller recuerda de dónde se venía; salir devuelve ahí."""
